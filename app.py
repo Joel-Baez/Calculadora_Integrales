@@ -89,7 +89,7 @@ METHOD_DETAILS: Dict[str, Dict[str, object]] = {
     },
     'trig': {
         'title': 'Sustitución trigonométrica',
-        'badge': '$\theta$-sustitución',
+        'badge': r'$\theta$-sustitución',
         'summary': (
             r'Las raíces de la forma $\sqrt{a^2 - x^2}$, $\sqrt{a^2 + x^2}$ o '
             r'$\sqrt{x^2 - a^2}$ sugieren introducir un ángulo $\theta$ para aprovechar identidades trigonométricas.'
@@ -270,7 +270,7 @@ def generate_parts_example(expr, var: Symbol):
         ),
         build_step(
             '3) Aplicamos la fórmula',
-            'Utilizamos $\int u\\,dv = uv - \int v\\,du$ y simplificamos la integral restante.',
+            r'Utilizamos $\int u\,dv = uv - \int v\,du$ y simplificamos la integral restante.',
             [
                 rf"\int {latex(poly_example * other)}\\,d{latex(var)} = {latex(poly_example)}{latex(v)} - \int {latex(v)}\\,{latex(du)}",
             ],
@@ -333,11 +333,11 @@ def generate_trig_example(expr, var: Symbol):
         ),
         build_step(
             '2) Realizamos la sustitución angular',
-            'Expresamos $x$ y $dx$ con $\\theta$ para simplificar la raíz.',
+            r'Expresamos $x$ y $dx$ con $\\theta$ para simplificar la raíz.',
             [substitution, differential],
         ),
         build_step(
-            '3) Integramos en $\\theta$',
+            r'3) Integramos en $\\theta$',
             'Resolvemos la integral elemental resultante y simplificamos.',
             [rf"\int {theta_integral}\\,d\\theta = {theta_antiderivative}"],
         ),
@@ -439,7 +439,7 @@ def generate_default_example(var: Symbol):
         ),
         build_step(
             '2) Aplicar reglas básicas',
-            'Integramos cada potencia usando la regla $\int x^{n}\\,dx = x^{n+1}/(n+1)$.',
+            r'Integramos cada potencia usando la regla $\int x^{n}\,dx = x^{n+1}/(n+1)$.',
             [format_antiderivative(antiderivative, var)],
         ),
     ]
@@ -541,7 +541,7 @@ def describe_features(expr, var: Symbol) -> List[str]:
     if expr.has(log):
         features.append('Aparecen logaritmos naturales en el integrando.')
     if expr.has(exp):
-        features.append('Incluye exponenciales $e^{x}$ u $\exp(x)$.')
+        features.append(r'Incluye exponenciales $e^{x}$ u $\exp(x)$.')
     if expr.has(sin) or expr.has(cos) or expr.has(tan) or expr.has(cot) or expr.has(sec) or expr.has(csc):
         features.append('Contiene funciones trigonométricas.')
     if expr.has(sqrt):

@@ -175,23 +175,26 @@ fieldset.field .option {
   background: transparent;
   border: none;
   outline: none;
+  display: flex;
+  align-items: center;
 }
 
-math-field::part(content) {
+.mathfield .ML__mathlive {
+  width: 100%;
   background: transparent;
   border: none;
-  padding: 0;
   color: inherit;
   font-family: 'STIX Two Math', 'Fira Code', monospace;
+  font-size: 1.25rem;
 }
 
-math-field::part(placeholder) {
+.mathfield .ML__mathlive:focus-within {
+  outline: none;
+}
+
+.mathfield .ML__placeholder {
   color: rgba(255, 255, 255, 0.45);
   font-style: italic;
-}
-
-math-field::part(caret) {
-  border-left-color: var(--accent);
 }
 
 .differential {
