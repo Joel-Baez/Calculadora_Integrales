@@ -438,6 +438,16 @@ math-field::part(caret) {
   line-height: 1.6;
 }
 
+.step-list h4 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  color: var(--accent);
+}
+
+.step-list p {
+  margin: 0;
+}
+
 .feature-list,
 .notes ul,
 .warnings ul {
@@ -530,6 +540,20 @@ math-field::part(caret) {
 .setup-value {
   font-family: 'STIX Two Math', 'Fira Code', monospace;
   font-size: 1rem;
+}
+
+.equation-group {
+  margin-top: 0.6rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.equation {
+  margin: 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.75rem;
+  background: rgba(19, 23, 34, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .step-list li::before {

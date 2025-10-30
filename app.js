@@ -1,5 +1,6 @@
 const form = document.getElementById('integralForm');
-const mathfield = document.getElementById('mathfield');
+const mathfieldElement = document.getElementById('mathfield');
+let mathfieldApi = mathfieldElement;
 const hiddenInput = document.getElementById('integralInput');
 const variableInput = document.getElementById('variableInput');
 const variableDisplay = document.getElementById('variableDisplay');
@@ -138,15 +139,15 @@ const updateVariableDisplay = () => {
 };
 
 const getLatexValue = () => {
-  if (mathfield && typeof mathfield.getValue === 'function') {
-    return mathfield.getValue('latex-expanded') || '';
+  if (mathfieldApi && typeof mathfieldApi.getValue === 'function') {
+    return mathfieldApi.getValue('latex-expanded') || '';
   }
   return hiddenInput.value || '';
 };
 
 const getAsciiValue = () => {
-  if (mathfield && typeof mathfield.getValue === 'function') {
-    return mathfield.getValue('ASCIIMath') || '';
+  if (mathfieldApi && typeof mathfieldApi.getValue === 'function') {
+    return mathfieldApi.getValue('ASCIIMath') || '';
   }
   return hiddenInput.value || '';
 };
@@ -156,20 +157,37 @@ const updateHiddenValue = () => {
   hiddenInput.value = getAsciiValue();
 };
 
-if (mathfield) {
-  mathfield.addEventListener('input', () => {
+const attachMathfieldListeners = () => {
+  if (!mathfieldElement && !mathfieldApi) return;
+  const target = mathfieldElement || mathfieldApi;
+  target?.addEventListener?.('input', () => {
     updateHiddenValue();
     setStatus('Expresión actualizada. Pulsa «Sugerir método».', 'idle');
   });
+};
+
+if (window?.customElements?.whenDefined) {
+  window.customElements.whenDefined('math-field').then(() => {
+    const element = document.getElementById('mathfield');
+    if (element && element.mathfield) {
+      mathfieldApi = element.mathfield;
+    }
+    attachMathfieldListeners();
+  });
+} else {
+  attachMathfieldListeners();
 }
 
 const insertLatex = (latex) => {
-  if (!mathfield || !latex) return;
-  mathfield.focus();
-  if (typeof mathfield.insert === 'function') {
-    mathfield.insert(latex);
-  } else if (typeof mathfield.executeCommand === 'function') {
-    mathfield.executeCommand('insert', latex);
+  if (!mathfieldElement && !mathfieldApi) return;
+  const target = mathfieldApi ?? mathfieldElement;
+  mathfieldElement?.focus();
+  if (target && typeof target.insert === 'function') {
+    target.insert(latex);
+  } else if (target && typeof target.executeCommand === 'function') {
+    target.executeCommand('insert', latex);
+  } else if (mathfieldElement && typeof mathfieldElement.setValue === 'function') {
+    mathfieldElement.setValue(latex);
   }
   updateHiddenValue();
 };
@@ -225,8 +243,10 @@ examplePills.forEach((pill) => {
   pill.addEventListener('click', () => {
     const latex = pill.dataset.latex;
     if (!latex) return;
-    if (mathfield && typeof mathfield.setValue === 'function') {
-      mathfield.setValue(latex);
+    if (mathfieldApi && typeof mathfieldApi.setValue === 'function') {
+      mathfieldApi.setValue(latex);
+    } else if (mathfieldElement && typeof mathfieldElement.setValue === 'function') {
+      mathfieldElement.setValue(latex);
     }
     updateHiddenValue();
     setStatus('Ejemplo cargado. Ajusta la expresión si lo necesitas.', 'idle');
@@ -286,12 +306,31 @@ const renderMethod = (method) => {
   } = method;
 
   const stepsList = steps.length
-    ? `<ol class="step-list">${steps.map((step) => `<li>${step}</li>`).join('')}</ol>`
+    ? `<ol class="step-list">${steps
+        .map(({ title, description, equations = [] }) => `
+          <li>
+            <h4>${title}</h4>
+            <p>${description}</p>
+            ${
+              equations.length
+                ? `<div class="equation-group">${equations
+                    .map((eq) => `<p class="equation">$$${eq}$$</p>`)
+                    .join('')}</div>`
+                : ''
+            }
+          </li>
+        `)
+        .join('')}</ol>`
     : '';
 
   const setupList = setup.length
     ? `<div class="setup"><h4>Datos clave</h4><div class="setup-grid">${setup
-        .map(({ label, value }) => `<div class="setup-item"><span class="setup-label">${label}</span><span class="setup-value">$$${value}$$</span></div>`)
+        .map(({ label, value }) => `
+          <div class="setup-item">
+            <span class="setup-label">${label}</span>
+            <span class="setup-value">$$${value}$$</span>
+          </div>
+        `)
         .join('')}</div></div>`
     : '';
 

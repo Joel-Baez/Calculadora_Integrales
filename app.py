@@ -30,6 +30,7 @@ from sympy import (
     symbols,
     tan,
     tanh,
+    Wild,
 )
 from sympy.core.function import AppliedUndef
 from sympy.core.sympify import SympifyError
@@ -74,48 +75,48 @@ METHOD_DETAILS: Dict[str, Dict[str, object]] = {
         'title': 'Sustitución simple',
         'badge': 'u-substitución',
         'summary': (
-            'Una función compuesta $f(g(x))$ cuya derivada $g\'(x)$ aparece multiplicando '
-            'permite introducir $u = g(x)$ para integrar en una sola variable auxiliar.'
+            r'Una función compuesta $f(g(x))$ cuya derivada $g\'(x)$ aparece multiplicando '
+            r'permite introducir $u = g(x)$ para integrar en una sola variable auxiliar.'
         ),
     },
     'parts': {
         'title': 'Integración por partes',
         'badge': '$u$ · $dv$',
         'summary': (
-            'Cuando el integrando es un producto, conviene derivar la parte que se simplifica '
-            'y antiderivar la que mantiene una forma manejable.'
+            r'Cuando el integrando es un producto, conviene derivar la parte que se simplifica '
+            r'y antiderivar la que mantiene una forma manejable.'
         ),
     },
     'trig': {
         'title': 'Sustitución trigonométrica',
         'badge': '$\theta$-sustitución',
         'summary': (
-            'Las raíces de la forma $\sqrt{a^2 - x^2}$, $\sqrt{a^2 + x^2}$ o '
-            '$\sqrt{x^2 - a^2}$ sugieren introducir un ángulo $\theta$ para aprovechar identidades trigonométricas.'
+            r'Las raíces de la forma $\sqrt{a^2 - x^2}$, $\sqrt{a^2 + x^2}$ o '
+            r'$\sqrt{x^2 - a^2}$ sugieren introducir un ángulo $\theta$ para aprovechar identidades trigonométricas.'
         ),
     },
     'partial_fractions': {
         'title': 'Fracciones parciales',
         'badge': 'descomposición',
         'summary': (
-            'Un cociente de polinomios factorizable se puede expresar como suma de fracciones '
-            'más simples cuya integración es directa.'
+            r'Un cociente de polinomios factorizable se puede expresar como suma de fracciones '
+            r'más simples cuya integración es directa.'
         ),
     },
     'repeated_factors': {
         'title': 'Fracciones parciales con factores repetidos',
         'badge': 'potencias lineales',
         'summary': (
-            'Cuando el denominador tiene factores lineales elevados a una potencia, cada potencia requiere '
-            'un término separado en la descomposición para integrar sin complicaciones.'
+            r'Cuando el denominador tiene factores lineales elevados a una potencia, cada potencia requiere '
+            r'un término separado en la descomposición para integrar sin complicaciones.'
         ),
     },
     'default': {
         'title': 'Exploración general',
         'badge': 'observación',
         'summary': (
-            'No se detectó un patrón dominante. Simplifica el integrando, separa en sumas '
-            'o intenta sustituciones básicas para avanzar.'
+            r'No se detectó un patrón dominante. Simplifica el integrando, separa en sumas '
+            r'o intenta sustituciones básicas para avanzar.'
         ),
     },
 }
@@ -132,31 +133,33 @@ def format_antiderivative(expr, variable: Symbol) -> str:
     return latex(expr + constant)
 
 
-def describe_trig_substitution(inner_poly, var: Symbol):
-    coeffs = inner_poly.all_coeffs()
-    if len(coeffs) != 3:
-        return None
-    a2, b, c = coeffs
-    if b != 0:
-        return None
-    a2 = simplify(a2)
-    c = simplify(c)
-    if a2.is_zero:
-        return None
-    pattern = None
-    if a2.is_negative and c.is_positive:
-        pattern = 'sqrt(a^2 - (bx)^2)'
-    elif a2.is_positive and c.is_positive:
-        pattern = 'sqrt(a^2 + (bx)^2)'
-    elif a2.is_positive and c.is_negative:
-        pattern = 'sqrt((bx)^2 - a^2)'
-    if pattern is None:
-        return None
-    return {
-        'pattern': pattern,
-        'a': simplify(abs(c) ** 0.5),
-        'b': simplify(abs(a2) ** 0.5),
-    }
+def build_step(title: str, description: str, equations: List[str] | None = None) -> Dict[str, object]:
+    payload: Dict[str, object] = {'title': title, 'description': description}
+    if equations:
+        payload['equations'] = equations
+    return payload
+
+
+def describe_trig_substitution(inner_expr, var: Symbol):
+    inner = simplify(inner_expr)
+    a = Wild('a', exclude=[var])
+    k = Wild('k', exclude=[var])
+
+    patterns = [
+        (a**2 - (k * var) ** 2, 'sqrt(a^2 - (bx)^2)'),
+        ((k * var) ** 2 - a**2, 'sqrt((bx)^2 - a^2)'),
+        (a**2 + (k * var) ** 2, 'sqrt(a^2 + (bx)^2)'),
+        ((k * var) ** 2 + a**2, 'sqrt(a^2 + (bx)^2)'),
+    ]
+
+    for pattern_expr, pattern_label in patterns:
+        match = inner.match(pattern_expr)
+        if match and match.get(a) not in (None, 0) and match.get(k) not in (None, 0):
+            a_val = simplify(abs(match[a]))
+            b_val = simplify(abs(match[k]))
+            return {'pattern': pattern_label, 'a': a_val, 'b': b_val}
+
+    return None
 
 
 def generate_substitution_example(expr, var: Symbol):
@@ -176,14 +179,38 @@ def generate_substitution_example(expr, var: Symbol):
     antiderivative = integrate(example_integrand, var)
     u_symbol = Symbol('u')
     setup = [
-        {'label': '$u$', 'value': latex(shifted_inner)},
-        {'label': '$du$', 'value': latex(derived) + rf"\\,d{latex(var)}"},
+        {'label': 'u', 'value': latex(shifted_inner)},
+        {'label': 'du', 'value': latex(derived) + rf"\\,d{latex(var)}"},
     ]
+    reduced_integral = integrate(outer(u_symbol), u_symbol)
     steps = [
-        rf"Reconoce la composición ${latex(outer(shifted_inner))}$ y que su derivada interna es ${latex(derived)}$.",
-        rf"Plantea $u = {latex(shifted_inner)}$ para obtener $du = {latex(derived)}\\,d{latex(var)}$.",
-        rf"Reescribe la integral como $\int {latex(outer(u_symbol))}\\,du$ e intégrala.",
-        "Sustituye nuevamente $u$ por la expresión original para volver a la variable principal.",
+        build_step(
+            '1) Identificamos la función compuesta',
+            (
+                'Notamos que la parte interior '
+                f"${latex(shifted_inner)}$ aparece junto con su derivada ${latex(derived)}$ "
+                'multiplicando a la función exterior.'
+            ),
+            [make_integral_latex(example_integrand, var)],
+        ),
+        build_step(
+            '2) Declaramos la sustitución',
+            'Elegimos una variable auxiliar que simplifique la composición.',
+            [
+                rf"u = {latex(shifted_inner)}",
+                rf"du = {latex(derived)}\\,d{latex(var)}",
+            ],
+        ),
+        build_step(
+            '3) Integramos en términos de $u$',
+            'Reescribimos la integral con la nueva variable y resolvemos la primitiva elemental.',
+            [rf"\int {latex(outer(u_symbol))}\\,du = {latex(reduced_integral)}"],
+        ),
+        build_step(
+            '4) Volvemos a la variable original',
+            'Sustituimos $u$ por la expresión inicial y añadimos la constante de integración.',
+            [format_antiderivative(antiderivative, var)],
+        ),
     ]
     return {
         'example_integral': make_integral_latex(example_integrand, var),
@@ -222,15 +249,37 @@ def generate_parts_example(expr, var: Symbol):
         v = Integral(other, var)
     antiderivative = integrate(example_integrand, var)
     setup = [
-        {'label': '$u$', 'value': latex(poly_example)},
-        {'label': '$du$', 'value': latex(du) + rf"\\,d{latex(var)}"},
-        {'label': '$dv$', 'value': latex(other) + rf"\\,d{latex(var)}"},
-        {'label': '$v$', 'value': latex(v)},
+        {'label': 'u', 'value': latex(poly_example)},
+        {'label': 'du', 'value': latex(du) + rf"\\,d{latex(var)}"},
+        {'label': 'dv', 'value': latex(other) + rf"\\,d{latex(var)}"},
+        {'label': 'v', 'value': latex(v)},
     ]
     steps = [
-        rf"Elige $u = {latex(poly_example)}$ porque su derivada $du = {latex(du)}\\,d{latex(var)}$ simplifica el producto.",
-        rf"Antideriva $dv = {latex(other)}\\,d{latex(var)}$ para obtener $v = {latex(v)}$.",
-        "Aplica la fórmula $\\int u\\,dv = uv - \\int v\\,du$ y simplifica el resultado.",
+        build_step(
+            '1) Elegimos integración por partes',
+            'Reorganizamos el producto para derivar la parte algebraica y antiderivar la parte especial.',
+            [make_integral_latex(example_integrand, var)],
+        ),
+        build_step(
+            '2) Fijamos las asignaciones',
+            'Asignamos $u$ y $dv$ para que la derivada de $u$ reduzca el grado del polinomio.',
+            [
+                rf"u = {latex(poly_example)} \Rightarrow du = {latex(du)}\\,d{latex(var)}",
+                rf"dv = {latex(other)}\\,d{latex(var)} \Rightarrow v = {latex(v)}",
+            ],
+        ),
+        build_step(
+            '3) Aplicamos la fórmula',
+            'Utilizamos $\int u\\,dv = uv - \int v\\,du$ y simplificamos la integral restante.',
+            [
+                rf"\int {latex(poly_example * other)}\\,d{latex(var)} = {latex(poly_example)}{latex(v)} - \int {latex(v)}\\,{latex(du)}",
+            ],
+        ),
+        build_step(
+            '4) Presentamos la primitiva final',
+            'Sumamos el resultado y añadimos la constante de integración.',
+            [format_antiderivative(antiderivative, var)],
+        ),
     ]
     return {
         'example_integral': make_integral_latex(example_integrand, var),
@@ -243,38 +292,60 @@ def generate_parts_example(expr, var: Symbol):
 def generate_trig_example(expr, var: Symbol):
     radicands = [term.args[0] for term in expr.atoms(sqrt) if term.has(var)]
     inner = radicands[0] if radicands else var**2 + 1
-    poly = inner.as_poly(var)
-    if poly is None:
-        poly = (var**2 + 1).as_poly(var)
-    description = describe_trig_substitution(poly, var)
+    description = describe_trig_substitution(inner, var)
     a = description['a'] if description else 1
     b = description['b'] if description else 1
     pattern = description['pattern'] if description else 'sqrt(a^2 + (bx)^2)'
+    theta = Symbol('theta')
+
     if pattern == 'sqrt(a^2 - (bx)^2)':
-        example_integrand = 1 / sqrt(a**2 - (b * var)**2)
-        substitution = rf"{latex(var)} = {latex(a / b)}\\sin\\theta"
-        differential = rf"d{latex(var)} = {latex(a)}\\cos\\theta\\,d\\theta"
+        example_integrand = 1 / sqrt(a**2 - (b * var) ** 2)
+        substitution_expr = (a / b) * sin(theta)
         inverse = latex(asin(var * b / a))
     elif pattern == 'sqrt((bx)^2 - a^2)':
-        example_integrand = sqrt((b * var)**2 - a**2) / var
-        substitution = rf"{latex(var)} = {latex(a / b)}\\sec\\theta"
-        differential = rf"d{latex(var)} = {latex(a / b)}\\sec\\theta\\tan\\theta\\,d\\theta"
+        example_integrand = sqrt((b * var) ** 2 - a**2) / var
+        substitution_expr = (a / b) * sec(theta)
         inverse = latex(acos(a / (b * var)))
     else:
-        example_integrand = 1 / sqrt(a**2 + (b * var)**2)
-        substitution = rf"{latex(var)} = {latex(a / b)}\\tan\\theta"
-        differential = rf"d{latex(var)} = {latex(a / b)}\\sec^2\\theta\\,d\\theta"
+        example_integrand = 1 / sqrt(a**2 + (b * var) ** 2)
+        substitution_expr = (a / b) * tan(theta)
         inverse = latex(atan(var * b / a))
+
+    dx_theta = diff(substitution_expr, theta)
+    substitution = rf"{latex(var)} = {latex(substitution_expr)}"
+    differential = rf"d{latex(var)} = {latex(dx_theta)}\\,d\\theta"
+    integrand_theta = simplify(example_integrand.subs(var, substitution_expr) * dx_theta)
+    theta_integral = latex(integrand_theta)
+    theta_antiderivative = latex(integrate(integrand_theta, theta))
     antiderivative = integrate(example_integrand, var)
+
     setup = [
-        {'label': '$x$', 'value': substitution},
-        {'label': '$dx$', 'value': differential},
-        {'label': '$\\theta$', 'value': inverse},
+        {'label': 'Sustitución', 'value': substitution},
+        {'label': 'Diferencial', 'value': differential},
+        {'label': 'Inversa', 'value': inverse},
     ]
+
     steps = [
-        "Identifica la raíz cuadrática y elige una sustitución trigonométrica acorde al patrón $a^2 \\pm x^2$.",
-        "Expresa $dx$ y la raíz en términos de $\\theta$ para obtener una integral elemental.",
-        "Integra respecto de $\\theta$ y usa la sustitución inversa para regresar a $x$.",
+        build_step(
+            '1) Reconocemos el patrón cuadrático',
+            'La raíz identifica el uso de una identidad trigonométrica para eliminar la raíz.',
+            [make_integral_latex(example_integrand, var)],
+        ),
+        build_step(
+            '2) Realizamos la sustitución angular',
+            'Expresamos $x$ y $dx$ con $\\theta$ para simplificar la raíz.',
+            [substitution, differential],
+        ),
+        build_step(
+            '3) Integramos en $\\theta$',
+            'Resolvemos la integral elemental resultante y simplificamos.',
+            [rf"\int {theta_integral}\\,d\\theta = {theta_antiderivative}"],
+        ),
+        build_step(
+            '4) Retornamos a la variable $x$',
+            'Aplicamos la sustitución inversa para expresar el resultado final en términos de la variable original.',
+            [format_antiderivative(antiderivative, var)],
+        ),
     ]
     return {
         'example_integral': make_integral_latex(example_integrand, var),
@@ -292,12 +363,25 @@ def generate_partial_fractions_example(expr, var: Symbol):
     decomposition = apart(example_integrand, var, full=True)
     antiderivative = integrate(example_integrand, var)
     setup = [
+        {'label': 'Denominador', 'value': latex(factor(denominator))},
         {'label': 'Descomposición', 'value': latex(decomposition)},
     ]
     steps = [
-        rf"Factoriza el denominador ${latex(factor(denominator))}$ para identificar términos simples.",
-        rf"Expresa la fracción como ${latex(decomposition)}$ y determina los coeficientes parciales.",
-        "Integra cada término independiente y suma las antiderivadas obtenidas.",
+        build_step(
+            '1) Factorizamos el denominador',
+            'El objetivo es expresar el cociente como suma de términos simples.',
+            [latex(factor(denominator))],
+        ),
+        build_step(
+            '2) Planteamos las fracciones parciales',
+            'Escribimos la descomposición y hallamos los coeficientes que la satisfacen.',
+            [latex(decomposition)],
+        ),
+        build_step(
+            '3) Integramos término a término',
+            'Cada fracción elemental tiene una primitiva directa, que sumamos al final.',
+            [format_antiderivative(antiderivative, var)],
+        ),
     ]
     return {
         'example_integral': make_integral_latex(example_integrand, var),
@@ -316,13 +400,25 @@ def generate_repeated_factors_example(expr, var: Symbol):
     antiderivative = integrate(example_integrand, var)
     decomposition = apart(example_integrand, var, full=True)
     setup = [
-        {'label': 'Factor dominante', 'value': latex(dominant)},
+        {'label': 'Factor repetido', 'value': latex(dominant)},
         {'label': 'Descomposición', 'value': latex(decomposition)},
     ]
     steps = [
-        "Escribe un término de fracción parcial para cada potencia del factor repetido.",
-        "Determina las constantes comparando coeficientes o evaluando la identidad resultante.",
-        "Integra cada término obteniendo potencias y logaritmos según corresponda.",
+        build_step(
+            '1) Aislamos el factor repetido',
+            'Identificamos el factor dominante y preparamos términos para cada potencia.',
+            [latex(dominant)],
+        ),
+        build_step(
+            '2) Asignamos fracciones parciales escalonadas',
+            'Cada potencia genera una fracción con numeradores constantes a determinar.',
+            [latex(decomposition)],
+        ),
+        build_step(
+            '3) Integramos sumando cada contribución',
+            'Aparecen potencias y logaritmos según la potencia del factor.',
+            [format_antiderivative(antiderivative, var)],
+        ),
     ]
     return {
         'example_integral': make_integral_latex(example_integrand, var),
@@ -336,8 +432,16 @@ def generate_default_example(var: Symbol):
     example_integrand = var**2 + 2 * var + 3
     antiderivative = integrate(example_integrand, var)
     steps = [
-        "Divide la integral en sumas de potencias simples.",
-        "Aplica la regla de la potencia y suma las antiderivadas.",
+        build_step(
+            '1) Separar en sumas manejables',
+            'Dividimos la integral en términos independientes.',
+            [latex(example_integrand)],
+        ),
+        build_step(
+            '2) Aplicar reglas básicas',
+            'Integramos cada potencia usando la regla $\int x^{n}\\,dx = x^{n+1}/(n+1)$.',
+            [format_antiderivative(antiderivative, var)],
+        ),
     ]
     return {
         'example_integral': make_integral_latex(example_integrand, var),
@@ -459,9 +563,9 @@ def detect_method(expr, var: Symbol) -> str:
 
     if expr.has(sqrt):
         for radicand in expr.atoms(sqrt):
-            inner = radicand.args[0]
-            poly = inner.as_poly(var)
-            if poly is not None and poly.degree() == 2 and describe_trig_substitution(poly, var):
+            inner = simplify(radicand.args[0])
+            description = describe_trig_substitution(inner, var)
+            if description:
                 return 'trig'
 
     if expr.is_Mul:

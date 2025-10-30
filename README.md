@@ -8,6 +8,7 @@ Aplicación web con backend en Python que analiza integrales indefinidas, sugier
 - **Detección heurística de métodos**: identifica sustitución simple, integración por partes, sustitución trigonométrica, fracciones parciales y casos con factores repetidos, mostrando un ejemplo semejante con anotaciones de \(u\), \(du\), \(dv\), \(v\), \(\theta\) y los retornos a la variable original.
 - **Editor matemático en \(\LaTeX\)**: el integrando se escribe en un campo MathLive enriquecido con teclado contextual para números, operadores, funciones, trigonometría y ayudas de método.
 - **Ejemplo guiado en LaTeX**: cada método trae un problema representativo, su solución final y un cuadro con los datos clave (como \(u\), \(du\) o el ángulo \(\theta\)) para seguir el razonamiento paso a paso.
+- **Pasos numerados con ecuaciones destacadas**: el ejemplo similar reproduce la secuencia didáctica con títulos, explicaciones y fórmulas renderizadas en \(\LaTeX\) para facilitar la comparación con la integral original.
 - **Interfaz responsiva y vistosa**: paneles translúcidos, tipografía moderna y estados informativos que acompañan el flujo de análisis.
 - **Teclado matemático segmentado**: botones agrupados por categorías (general, funciones, sustitución, fracciones parciales, etc.) que facilitan la captura del integrando desde la propia interfaz.
 
