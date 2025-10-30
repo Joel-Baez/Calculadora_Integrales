@@ -84,19 +84,21 @@ body {
   letter-spacing: 0.05em;
 }
 
-.input-wrapper {
+.integral-editor {
   display: flex;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 18px;
-  padding: 0.75rem 1rem;
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 1rem 1.25rem;
   margin-bottom: 1.5rem;
   border: 1px solid transparent;
-  transition: border 0.3s ease;
+  transition: border 0.3s ease, box-shadow 0.3s ease;
+  gap: 1rem;
 }
 
-.input-wrapper:focus-within {
+.integral-editor:focus-within {
   border-color: var(--accent);
+  box-shadow: 0 10px 28px rgba(244, 162, 97, 0.2);
 }
 
 .input-controls {
@@ -172,6 +174,18 @@ fieldset.field .option {
   font-size: 1.2rem;
   outline: none;
   font-family: 'Fira Code', monospace;
+  resize: none;
+  min-height: 2.6rem;
+  line-height: 1.6;
+}
+
+#integralInput::-webkit-scrollbar {
+  width: 6px;
+}
+
+#integralInput::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
 }
 
 .differential {
@@ -181,39 +195,105 @@ fieldset.field .option {
   opacity: 0.85;
 }
 
-.bounds {
-  display: none;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
 }
 
-.bounds.visible {
+.keyboard-tabs {
   display: flex;
   flex-wrap: wrap;
+  gap: 0.6rem;
 }
 
-.keyboard {
+.keyboard-tabs .tab {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.2s ease, border 0.2s ease, background 0.2s ease;
+}
+
+.keyboard-tabs .tab:hover,
+.keyboard-tabs .tab:focus {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.keyboard-tabs .tab.active {
+  background: var(--accent);
+  color: #0f172a;
+}
+
+.keyboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
   gap: 0.75rem;
 }
 
-.keyboard button {
+.keyboard-grid .key {
   background: rgba(255, 255, 255, 0.16);
   border: 1px solid transparent;
-  border-radius: 14px;
+  border-radius: 16px;
+  padding: 0.75rem 0.5rem;
   color: var(--text-primary);
+  font-family: var(--font-display);
   font-size: 1rem;
-  padding: 0.65rem 0.5rem;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
-  font-family: var(--font-display);
 }
 
-.keyboard button:hover,
-.keyboard button:focus {
+.keyboard-grid .key:hover,
+.keyboard-grid .key:focus {
   transform: translateY(-2px);
+  border-color: var(--accent);
   box-shadow: 0 10px 18px rgba(0, 0, 0, 0.25);
+}
+
+.example-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.example-pills span {
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.pill-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.pill {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid transparent;
+  color: var(--text-primary);
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: transform 0.2s ease, border 0.2s ease;
+  backdrop-filter: blur(12px);
+}
+
+.pill:hover,
+.pill:focus {
+  transform: translateY(-2px);
   border-color: var(--accent);
 }
 
@@ -254,13 +334,7 @@ fieldset.field .option {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  min-height: 320px;
-  justify-content: center;
-}
-
-.solution-card {
-  margin-top: 1.5rem;
-  gap: 0.75rem;
+  min-height: 260px;
   justify-content: flex-start;
 }
 
@@ -376,6 +450,45 @@ fieldset.field .option {
   border-radius: 12px;
 }
 
+.example-card {
+  gap: 1.1rem;
+}
+
+.setup {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 0.9rem 1.1rem;
+}
+
+.setup h4 {
+  margin: 0 0 0.6rem;
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+.setup-grid {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.setup-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.setup-label {
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.setup-value {
+  font-family: 'Fira Code', monospace;
+  font-size: 1rem;
+}
+
 .step-list li::before {
   content: "✦";
   color: var(--accent-strong);
@@ -389,15 +502,6 @@ fieldset.field .option {
 .step-list li span {
   display: block;
   padding-left: 1.75rem;
-}
-
-.solution-card.loading {
-  opacity: 0.6;
-}
-
-.solution-card .solution-error {
-  color: var(--accent-strong);
-  font-weight: 600;
 }
 
 footer {
@@ -423,15 +527,11 @@ footer {
     padding: 2rem 1.5rem;
   }
 
-  .keyboard {
-    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  .keyboard-grid {
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   }
 
   .input-controls {
     flex-direction: column;
-  }
-
-  fieldset.field {
-    min-width: auto;
   }
 }

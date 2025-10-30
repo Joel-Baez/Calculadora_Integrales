@@ -4,7 +4,6 @@ from typing import Dict, List
 from flask import Flask, jsonify, request, send_from_directory
 from sympy import (
     E,
-    Integral,
     Symbol,
     acos,
     asin,
@@ -15,7 +14,6 @@ from sympy import (
     csc,
     diff,
     exp,
-    integrate,
     latex,
     log,
     pi,
@@ -70,69 +68,95 @@ METHOD_DETAILS: Dict[str, Dict[str, object]] = {
         'title': 'Sustitución simple',
         'badge': 'u-substitución',
         'summary': (
-            'La estructura compuesta permite definir una variable auxiliar '
-            'cuyo diferencial aparece multiplicando en la integral.'
+            'Una función compuesta $f(g(x))$ cuya derivada $g\'(x)$ aparece multiplicando '
+            'permite introducir $u = g(x)$ para integrar en una sola variable auxiliar.'
         ),
-        'example': r'\int (3x^2 + 1)\cos(x^3 + x)\,dx',
+        'example_integral': r'\int (3x^2 + 1)\cos(x^3 + x)\,dx',
+        'example_solution': r'\sin(x^3 + x) + C',
+        'setup': [
+            {'label': '$u$', 'value': 'x^3 + x'},
+            {'label': '$du$', 'value': '(3x^2 + 1)\\,dx'},
+        ],
         'steps': [
-            r'Selecciona $u = x^3 + x$ y calcula $du = (3x^2 + 1)\,dx$.',
-            r'Reemplaza en la integral: $\int \cos(u)\,du$.',
-            r'Integra $\cos(u)$ para obtener $\sin(u) + C$.',
-            r'Retorna a la variable original: $\sin(x^3 + x) + C$.'
+            r'Identifica $u = x^3 + x$ porque su diferencial $du = (3x^2 + 1)\,dx$ aparece completo.',
+            r'Reemplaza el integrando por $\int \cos(u)\,du$ y calcula la antiderivada $\sin(u) + C$.',
+            r'Retorna a la variable original sustituyendo $u$ por $x^3 + x$.'
         ],
     },
     'parts': {
         'title': 'Integración por partes',
-        'badge': '$u$ $dv$',
+        'badge': '$u$ · $dv$',
         'summary': (
-            'Se identifica un producto donde una función simplifica al derivarla '
-            'y la otra es sencilla de integrar.'
+            'Cuando el integrando es un producto, conviene derivar la parte que se simplifica '
+            'y antiderivar la que mantiene una forma manejable.'
         ),
-        'example': r'\int x e^x\,dx',
+        'example_integral': r'\int x e^x\,dx',
+        'example_solution': r'x e^x - e^x + C',
+        'setup': [
+            {'label': '$u$', 'value': 'x'},
+            {'label': '$du$', 'value': 'dx'},
+            {'label': '$dv$', 'value': 'e^x\\,dx'},
+            {'label': '$v$', 'value': 'e^x'},
+        ],
         'steps': [
-            r'Elige $u = x$ y $dv = e^x\,dx$; entonces $du = dx$ y $v = e^x$.',
-            r'Aplica la fórmula $\int u\,dv = uv - \int v\,du$.',
-            r'Obtén $x e^x - \int e^x dx = x e^x - e^x + C$.'
+            r'Aplica $\int u\,dv = uv - \int v\,du$ con las elecciones indicadas.',
+            r'Calcula $uv = x e^x$ y $\int v\,du = \int e^x\,dx = e^x$.',
+            r'Resta ambos términos para obtener $x e^x - e^x + C$.'
         ],
     },
     'trig': {
         'title': 'Sustitución trigonométrica',
         'badge': '$\\theta$-sustitución',
         'summary': (
-            'La presencia de raíces cuadráticas en expresiones cuadráticas sugiere '
-            'introducir un ángulo $\\theta$ para aprovechar identidades trigonométricas.'
+            'Las raíces de la forma $\\sqrt{a^2 - x^2}$, $\\sqrt{a^2 + x^2}$ o '
+            '$\\sqrt{x^2 - a^2}$ sugieren introducir un ángulo $\\theta$ para aprovechar identidades trigonométricas.'
         ),
-        'example': r'\int \frac{dx}{\sqrt{1 - x^2}}',
+        'example_integral': r'\int \frac{dx}{\sqrt{1 - x^2}}',
+        'example_solution': r'\arcsin(x) + C',
+        'setup': [
+            {'label': '$x$', 'value': '\\sin\\theta'},
+            {'label': '$dx$', 'value': '\\cos\\theta\\,d\\theta'},
+            {'label': '$\\theta$', 'value': '\\arcsin(x)'},
+        ],
         'steps': [
-            r'Usa $x = \sin\\theta$ y $dx = \cos\\theta\,d\\theta$.',
-            r'Sustituye y simplifica: $\int \frac{\cos\\theta}{\sqrt{1 - \sin^2\\theta}}\,d\\theta = \int d\\theta$.',
-            r'Integra para obtener $\\theta + C$ y regresa a $x$ con $\\theta = \arcsin(x)$.'
+            r'Sustituye $x = \sin\\theta$ para transformar la raíz en $\\sqrt{1 - \sin^2\\theta} = \cos\\theta$.',
+            r'Reemplaza $dx$ por $\cos\\theta\,d\\theta$ y simplifica la integral a $\int d\\theta$.',
+            r'Integra para obtener $\\theta + C$ y regresa a términos de $x$ mediante $\\theta = \arcsin(x)$.'
         ],
     },
     'partial_fractions': {
         'title': 'Fracciones parciales',
         'badge': 'descomposición',
         'summary': (
-            'Un cociente de polinomios permite descomponer en fracciones más '
-            'simples que se integran término a término.'
+            'Un cociente de polinomios factorizable se puede expresar como suma de fracciones '
+            'más simples cuya integración es directa.'
         ),
-        'example': r'\int \frac{2x + 3}{x^2 + 3x}\,dx',
+        'example_integral': r'\int \frac{2x + 3}{x^2 + 3x}\,dx',
+        'example_solution': r'\ln|x| + \ln|x + 3| + C',
+        'setup': [
+            {
+                'label': 'Descomposición',
+                'value': r'\frac{2x + 3}{x(x + 3)} = \frac{1}{x} + \frac{1}{x + 3}'
+            }
+        ],
         'steps': [
-            r'Factoriza $x^2 + 3x = x(x + 3)$.',
-            r'Plantea $\frac{2x + 3}{x(x + 3)} = \frac{A}{x} + \frac{B}{x + 3}$.',
-            r'Resuelve para $A$ y $B$ y luego integra cada término por separado.'
+            r'Factoriza el denominador $x^2 + 3x = x(x + 3)$.',
+            r'Descompón en fracciones parciales y obtén coeficientes unitarios.',
+            r'Integra cada término para llegar a $\ln|x| + \ln|x + 3| + C$.'
         ],
     },
     'default': {
         'title': 'Exploración general',
         'badge': 'observación',
         'summary': (
-            'No se detectó un patrón dominante. Simplifica el integrando, '
-            'usa sustituciones básicas o separa en sumas para avanzar.'
+            'No se detectó un patrón dominante. Simplifica el integrando, separa en sumas '
+            'o intenta sustituciones básicas para avanzar.'
         ),
-        'example': r'\int (x^2 + 1)\,dx',
+        'example_integral': r'\int (x^2 + 1)\,dx',
+        'example_solution': r'\tfrac{x^3}{3} + x + C',
         'steps': [
-            r'Integra término a término y considera transformaciones algebraicas sencillas.'
+            r'Divide la integral en términos elementales y aplica reglas de potencia.',
+            r'Comprueba si una sustitución sencilla reduce aún más la expresión.'
         ],
     },
 }
@@ -231,45 +255,6 @@ def detect_method(expr, var: Symbol) -> str:
     return 'substitution' if expr.has(exp, log, sin, cos, tan, cot, sec, csc, sinh, cosh, tanh) else 'default'
 
 
-def evaluate_integral(expr, var: Symbol, lower_expr=None, upper_expr=None):
-    try:
-        antiderivative = integrate(expr, var)
-    except Exception as exc:  # pylint: disable=broad-except
-        raise ValueError(f'La integral simbólica no pudo resolverse: {exc}') from exc
-
-    if antiderivative.has(Integral):
-        raise ValueError('SymPy no pudo encontrar una antiderivada cerrada para esta expresión.')
-
-    result: Dict[str, object] = {'status': 'ok', 'integral_latex': '', 'extra_notes': []}
-
-    if lower_expr is None or upper_expr is None:
-        result['integral_latex'] = f"{integral_to_latex(antiderivative)} + C"
-        result['extra_notes'].append('Se incluye la constante de integración $+C$.')
-        return result
-
-    try:
-        definite_value = integrate(expr, (var, lower_expr, upper_expr))
-    except Exception as exc:  # pylint: disable=broad-except
-        raise ValueError(f'No se pudo evaluar la integral definida: {exc}') from exc
-
-    antiderivative_latex = integral_to_latex(antiderivative)
-    lower_latex = integral_to_latex(lower_expr)
-    upper_latex = integral_to_latex(upper_expr)
-    evaluated_upper = integral_to_latex(antiderivative.subs(var, upper_expr))
-    evaluated_lower = integral_to_latex(antiderivative.subs(var, lower_expr))
-    value_latex = integral_to_latex(definite_value)
-
-    result['integral_latex'] = value_latex
-    result['evaluation_latex'] = (
-        f"{antiderivative_latex}\\Big|_{{{lower_latex}}}^{{{upper_latex}}}"
-        f" = {evaluated_upper} - {evaluated_lower} = {value_latex}"
-    )
-    result['extra_notes'].append(
-        'El valor corresponde a evaluar el primitivo entre los límites indicados.'
-    )
-    return result
-
-
 def integral_to_latex(expr) -> str:
     return latex(expr)
 
@@ -284,12 +269,7 @@ def analyze():
     payload = request.get_json(silent=True) or {}
     expression = payload.get('expression', '')
     variable_name = payload.get('variable', 'x')
-    integral_type = payload.get('type', 'indefinite')
-    lower = payload.get('lower_bound')
-    upper = payload.get('upper_bound')
-
     variable_name = re.sub(r'[^a-zA-Z]', '', variable_name) or 'x'
-    integral_type = 'definite' if integral_type == 'definite' else 'indefinite'
 
     sanitized = sanitize_expression(expression, variable_name)
     if not sanitized:
@@ -313,46 +293,21 @@ def analyze():
             + ', '.join(extra_symbols)
         )
 
-    lower_expr = upper_expr = None
-    if integral_type == 'definite':
-        lower_sanitized = sanitize_expression(lower or '', variable_name)
-        upper_sanitized = sanitize_expression(upper or '', variable_name)
-        if not lower_sanitized or not upper_sanitized:
-            return jsonify({
-                'status': 'error',
-                'error': 'Los límites de integración no pudieron interpretarse.',
-            }), 400
-        try:
-            lower_expr = parse_expression(lower_sanitized, variable_name)
-            upper_expr = parse_expression(upper_sanitized, variable_name)
-        except ValueError as exc:
-            return jsonify({'status': 'error', 'error': str(exc)}), 400
-
-        if lower_expr.has(var_symbol) or upper_expr.has(var_symbol):
-            warnings.append(
-                'Los límites dependen de la variable de integración; revisa si se trata de '
-                'una integral impropia o paramétrica.'
-            )
-
     analysis = {
         'sanitized_expression': integral_to_latex(expr),
         'variable': variable_name,
-        'type': integral_type,
         'detected_features': features,
         'warnings': warnings,
+        'method_key': method_key,
     }
 
-    result = {}
-    try:
-        result = evaluate_integral(expr, var_symbol, lower_expr, upper_expr)
-    except ValueError as exc:
-        return jsonify({'status': 'error', 'error': str(exc)}), 400
+    method_payload = dict(method)
+    method_payload['key'] = method_key
 
     response = {
         'status': 'ok',
         'analysis': analysis,
-        'result': result,
-        'method': method,
+        'method': method_payload,
     }
     return jsonify(response)
 

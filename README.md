@@ -1,14 +1,14 @@
 # Calculadora Creativa de Integrales
 
-Aplicación web con backend en Python que analiza integrales definidas o indefinidas, sugiere el método de integración más adecuado y muestra un ejemplo muy similar con pasos detallados en \(\LaTeX\). La antiderivada (o el valor de la integral definida) se calcula usando [SymPy](https://www.sympy.org/) y se presenta en notación matemática renderizada con MathJax.
+Aplicación web con backend en Python que analiza integrales indefinidas, sugiere el método de integración más adecuado y muestra un ejemplo muy similar con pasos detallados en \(\LaTeX\). El motor basado en [SymPy](https://www.sympy.org/) se centra en reconocer patrones y generar la guía didáctica, no en resolver exactamente la integral ingresada por la persona usuaria.
 
 ## Características principales
 
-- **Motor simbólico en Python**: el servidor Flask ejecuta SymPy para resolver integrales, evaluar límites definidos y generar expresiones en \(\LaTeX\).
-- **Detección heurística de métodos**: identifica sustitución simple, integración por partes, sustitución trigonométrica y fracciones parciales, mostrando un ejemplo semejante con anotaciones de \(u\), \(du\), \(dv\), \(v\) y \(\theta\).
-- **Análisis del integrando**: destaca características relevantes (polinomios, funciones racionales, raíces, logaritmos, etc.) e indica advertencias cuando aparecen variables adicionales o límites dependientes.
-- **Interfaz responsiva y vistosa**: paneles translúcidos, tipografía moderna y modos de estado para guiar a la persona usuaria durante el cálculo.
-- **Teclado matemático en pantalla**: inserta símbolos frecuentes (∫, √, π, sin, cos, tan, ln, exp, etc.) con gestión del cursor para facilitar la escritura.
+- **Motor de análisis en Python**: el servidor Flask utiliza SymPy para validar la expresión, detectar patrones e interpretar el integrando en \(\LaTeX\), sin exponer directamente la integral ingresada como resultado.
+- **Detección heurística de métodos**: identifica sustitución simple, integración por partes, sustitución trigonométrica y fracciones parciales, mostrando un ejemplo semejante con anotaciones de \(u\), \(du\), \(dv\), \(v\) y los retornos a la variable original.
+- **Ejemplo guiado en LaTeX**: cada método trae un problema representativo, su solución final y un cuadro con los datos clave (como \(u\), \(du\) o el ángulo \(\theta\)) para seguir el razonamiento paso a paso.
+- **Interfaz responsiva y vistosa**: paneles translúcidos, tipografía moderna y estados informativos que acompañan el flujo de análisis.
+- **Teclado matemático segmentado**: botones agrupados por categorías (general, funciones, sustitución, fracciones parciales, etc.) que facilitan la captura del integrando desde la propia interfaz.
 
 ## Requisitos
 
@@ -32,14 +32,14 @@ pip install -r requirements.txt
    (También puedes ejecutar `python app.py` para un arranque simple con `debug=True`).
 
 2. Abre `http://127.0.0.1:5000/` en tu navegador.
-3. Selecciona si deseas integrar de forma indefinida o definida, proporciona el integrando y (si corresponde) los límites. El resultado simbólico se generará junto con el método sugerido y el ejemplo guiado.
+3. Proporciona la integral indefinida que quieras estudiar (integrando y variable principal). El sistema responderá con el método recomendado y un ejemplo similar completamente resuelto para guiarte.
 
 ## Consejos de entrada
 
 - Usa el selector de variable para indicar la letra principal (por defecto `x`). La sanitización también acepta notación como `sen`, `tg`, `√` o `π` y la traduce a funciones de SymPy.
 - Escribe multiplicaciones explícitas (`*`) cuando el integrando pueda ser ambiguo (por ejemplo, `x*sin(x)` en lugar de `x sin(x)`).
-- Para integrales definidas, introduce límites numéricos o simbólicos independientes de la variable de integración.
-- El método sugerido puede diferir del utilizado internamente por SymPy, pero siempre se presenta un ejemplo muy similar con pasos claros para estudiar la técnica recomendada.
+- Recuerda que solo se analizan integrales indefinidas: la respuesta consiste en la técnica sugerida y un ejemplo análogo resuelto, no en la antiderivada de tu entrada.
+- El método sugerido puede diferir del que usarías manualmente, pero siempre viene acompañado de las sustituciones (\(u\), \(du\), \(dv\), \(v\), \(\theta\), etc.) y los pasos para replicarlo.
 
 ## Estructura del proyecto
 
