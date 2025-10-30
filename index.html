@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calculadora Creativa de Integrales Indefinidas</title>
+  <link rel="stylesheet" href="https://unpkg.com/mathlive/dist/mathlive-static.css">
   <link rel="stylesheet" href="styles.css">
   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -27,17 +28,19 @@
           </div>
         </div>
 
-        <label for="mathfield" class="sr-only">Integrando</label>
+        <label for="mathField" class="sr-only">Integrando</label>
         <div class="integral-editor" aria-label="Editor de integrales indefinidas">
           <span class="integral-symbol">∫</span>
           <div class="input-wrapper">
-            <textarea
-              id="latexInput"
+            <math-field
+              id="mathField"
               class="latex-input"
               aria-label="Escribe aquí tu integrando en notación LaTeX"
               placeholder="(x^2+1)\\sin(x)"
-              rows="3"
-            ></textarea>
+              virtual-keyboard-mode="off"
+              smart-fence="true"
+              smart-mode="true"
+            ></math-field>
             <div id="latexPreview" class="latex-preview" aria-live="polite"></div>
           </div>
           <span class="differential" aria-hidden="true">d<span id="variableDisplay">x</span></span>
@@ -86,6 +89,7 @@
     <p>Desarrollado para inspirar el estudio creativo del cálculo integral.</p>
   </footer>
 
+  <script src="https://unpkg.com/mathlive/dist/mathlive.min.js"></script>
   <script src="app.js" defer></script>
 </body>
 </html>
