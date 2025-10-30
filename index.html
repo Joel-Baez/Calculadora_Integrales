@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora Creativa de Integrales</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-content">
+      <h1>Calculadora Creativa de Integrales</h1>
+      <p>Ingresa una integral indefinida y obtén la sugerencia del método de integración con un ejemplo muy similar, explicado paso a paso en \(\LaTeX\).</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="input-panel">
+      <h2>Introduce tu integral</h2>
+      <label for="integralInput" class="sr-only">Integrando</label>
+      <div class="input-wrapper">
+        <span class="integral-symbol">∫</span>
+        <input id="integralInput" type="text" placeholder="ej. (x^2 + 1) * sin(x) dx" autocomplete="off">
+      </div>
+      <div class="keyboard" aria-label="Teclado matemático">
+        <button type="button" data-value="∫">∫</button>
+        <button type="button" data-value="dx">dx</button>
+        <button type="button" data-value="^">^</button>
+        <button type="button" data-value="√">√</button>
+        <button type="button" data-value="π">π</button>
+        <button type="button" data-value="sin(x)">sin</button>
+        <button type="button" data-value="cos(x)">cos</button>
+        <button type="button" data-value="tan(x)">tan</button>
+        <button type="button" data-value="e^x">e^x</button>
+        <button type="button" data-value="ln(x)">ln</button>
+        <button type="button" data-value="(">(</button>
+        <button type="button" data-value=")">)</button>
+        <button type="button" data-value="/">/</button>
+        <button type="button" data-value="*">*</button>
+        <button type="button" data-value="+">+</button>
+        <button type="button" data-value="-">-</button>
+      </div>
+      <p class="hint">La integral ingresada no será resuelta directamente: recibirás un ejemplo muy similar para estudiar el método sugerido.</p>
+    </section>
+
+    <section class="result-panel" aria-live="polite">
+      <h2>Método sugerido</h2>
+      <div id="methodSuggestion" class="method-card">
+        <p>Escribe una integral para analizar su estructura.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Desarrollado para inspirar el estudio creativo del cálculo integral.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
