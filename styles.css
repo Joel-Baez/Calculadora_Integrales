@@ -173,7 +173,7 @@ fieldset.field .option {
   gap: 0.65rem;
 }
 
-math-field.latex-input,
+.mathlive-host,
 textarea.latex-input {
   width: 100%;
   min-height: 3.2rem;
@@ -192,38 +192,43 @@ textarea.latex-input {
   resize: vertical;
 }
 
-math-field.latex-input {
-  display: block;
+.mathlive-host {
+  display: flex;
+  align-items: center;
   padding: 0.65rem 0.9rem;
 }
 
-math-field.latex-input::part(content) {
-  min-height: 1.7rem;
-  font-family: 'Fira Code', monospace;
-  font-size: 1.1rem;
-  color: var(--text-primary);
-}
-
-math-field.latex-input::part(placeholder) {
-  color: rgba(255, 255, 255, 0.45);
-  font-style: italic;
-}
-
-math-field.latex-input::part(virtual-keyboard-toggle) {
-  display: none;
-}
-
-math-field.latex-input:focus-within,
+.mathlive-host:focus-within,
 .latex-input:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(244, 162, 97, 0.35);
 }
 
-math-field.latex-input.invalid,
+.mathlive-host.invalid,
 .latex-input.invalid {
   border-color: var(--accent-strong);
   box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.35);
+}
+
+.mathlive-host .mathlive-control {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: 'Fira Code', monospace;
+  font-size: 1.1rem;
+  min-height: 1.8rem;
+}
+
+.mathlive-host .mathlive-control:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.mathlive-host .mathlive-control .ML__placeholder {
+  color: rgba(255, 255, 255, 0.45);
+  font-style: italic;
 }
 
 .latex-preview {

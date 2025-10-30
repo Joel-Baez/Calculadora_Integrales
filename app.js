@@ -1,5 +1,5 @@
 const form = document.getElementById('integralForm');
-const mathfieldElement = document.getElementById('mathField');
+const mathfieldHost = document.getElementById('mathField');
 const latexPreview = document.getElementById('latexPreview');
 const hiddenInput = document.getElementById('integralInput');
 const variableInput = document.getElementById('variableInput');
@@ -179,7 +179,7 @@ const updatePreview = () => {
 };
 
 const handleLatexInput = () => {
-  mathfieldElement?.classList.remove('invalid');
+  mathfieldHost?.classList.remove('invalid');
   updateHiddenValue();
   updatePreview();
   if (getLatexValue()) {
@@ -200,26 +200,39 @@ const insertLatex = (snippet) => {
 };
 
 const initializeMathField = () => {
-  if (!mathfieldElement) {
+  if (!mathfieldHost) {
     setStatus('No se encontró el editor de integrales en la página.', 'error');
     return;
   }
 
-  if (!window.MathLive || typeof window.MathLive.makeMathField !== 'function') {
+  if (!window.MathLive || typeof window.MathLive.MathfieldElement !== 'function') {
     setStatus('No se pudo cargar el editor matemático. Verifica tu conexión e intenta de nuevo.', 'error');
     return;
   }
 
-  mathField = window.MathLive.makeMathField(mathfieldElement, {
+  const placeholder = mathfieldHost.dataset.placeholder || '';
+  const ariaLabel = mathfieldHost.getAttribute('aria-label') || 'Editor de integrales';
+
+  mathField = new window.MathLive.MathfieldElement();
+  mathField.classList.add('mathlive-control');
+  mathField.setOptions({
     smartMode: true,
     smartFence: true,
     virtualKeyboardMode: 'manual',
     virtualKeyboardTheme: 'material',
-    readOnly: false
+    readOnly: false,
   });
+  mathField.placeholder = placeholder;
+  mathField.value = '';
+  mathField.setAttribute('aria-label', ariaLabel);
 
-  mathField.on('input', handleLatexInput);
-  mathfieldElement.addEventListener('focusin', () => mathfieldElement.classList.remove('invalid'));
+  mathField.addEventListener('input', handleLatexInput);
+  mathField.addEventListener('focusin', () => mathfieldHost.classList.remove('invalid'));
+  mathfieldHost.addEventListener('focusin', () => mathfieldHost.classList.remove('invalid'));
+
+  mathfieldHost.innerHTML = '';
+  mathfieldHost.appendChild(mathField);
+
   handleLatexInput();
 };
 
@@ -427,13 +440,13 @@ form.addEventListener('submit', async (event) => {
 
   if (!latexExpression) {
     setStatus('Por favor completa el integrando en el editor antes de analizar.', 'error');
-    mathfieldElement?.classList.add('invalid');
+    mathfieldHost?.classList.add('invalid');
     return;
   }
 
   if (latexExpression.includes('\\placeholder')) {
     setStatus('Completa los espacios vacíos del teclado antes de enviar la integral.', 'error');
-    mathfieldElement?.classList.add('invalid');
+    mathfieldHost?.classList.add('invalid');
     return;
   }
 

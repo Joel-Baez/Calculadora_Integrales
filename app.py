@@ -31,6 +31,7 @@ from sympy import (
     tan,
     tanh,
     Wild,
+    Pow,
 )
 from sympy.core.function import AppliedUndef
 from sympy.core.sympify import SympifyError
@@ -551,6 +552,51 @@ def describe_features(expr, var: Symbol) -> List[str]:
     return features
 
 
+def is_transcendental_factor(expr, var: Symbol) -> bool:
+    transcendental_funcs = (sin, cos, tan, cot, sec, csc, sinh, cosh, tanh, exp, log)
+    return any(expr.has(func) for func in transcendental_funcs) or expr.has(sqrt)
+
+
+def indicates_parts(expr, var: Symbol) -> bool:
+    terms = expr.as_ordered_terms()
+    for term in terms:
+        factors = term.as_ordered_factors()
+        if len(factors) < 2:
+            continue
+        poly_like = any((factor.as_poly(var) is not None and factor.as_poly(var).degree() >= 1) for factor in factors if factor.has(var))
+        transc_like = any(is_transcendental_factor(factor, var) for factor in factors)
+        if poly_like and transc_like:
+            return True
+    return False
+
+
+def indicates_substitution(expr, var: Symbol) -> bool:
+    composite_candidates = expr.atoms(exp, log, sin, cos, tan, cot, sec, csc, sinh, cosh, tanh, sqrt)
+    for func_expr in composite_candidates:
+        if not func_expr.args:
+            continue
+        inner = func_expr.args[0]
+        derivative = diff(inner, var)
+        if derivative == 0:
+            continue
+        try:
+            ratio = simplify(expr / derivative)
+        except Exception:  # pragma: no cover
+            continue
+        if ratio.has(func_expr):
+            return True
+        if expr.has(derivative) and expr.has(func_expr):
+            return True
+    power_candidates = [term for term in expr.atoms(Pow) if term.has(var)]
+    for pow_expr in power_candidates:
+        base = pow_expr.base
+        if base.has(var):
+            derivative = diff(base, var)
+            if derivative != 0 and expr.has(derivative):
+                return True
+    return False
+
+
 def detect_method(expr, var: Symbol) -> str:
     if expr.is_rational_function(var) and not expr.is_polynomial(var):
         _, denominator = fraction(expr)
@@ -568,24 +614,13 @@ def detect_method(expr, var: Symbol) -> str:
             if description:
                 return 'trig'
 
-    if expr.is_Mul:
-        polynomial_part = any(f.as_poly(var) is not None for f in expr.args if f.has(var))
-        transcendental_part = any(
-            f.has(exp, log, sin, cos, tan, cot, sec, csc, sinh, cosh, tanh)
-            for f in expr.args
-        )
-        if polynomial_part and transcendental_part:
-            return 'parts'
+    if indicates_parts(expr, var):
+        return 'parts'
 
-    if expr.has(sin, cos, tan, cot, sec, csc, exp, log, sinh, cosh, tanh):
-        derivatives = [
-            diff(arg, var)
-            for arg in expr.atoms(exp, log, sin, cos, tan, cot, sec, csc, sinh, cosh, tanh)
-        ]
-        if any(expr.has(der) for der in derivatives):
-            return 'substitution'
+    if indicates_substitution(expr, var):
+        return 'substitution'
 
-    return 'substitution' if expr.has(exp, log, sin, cos, tan, cot, sec, csc, sinh, cosh, tanh) else 'default'
+    return 'substitution' if expr.has(exp, log, sin, cos, tan, cot, sec, csc, sinh, cosh, tanh, sqrt) else 'default'
 
 
 @app.route('/')

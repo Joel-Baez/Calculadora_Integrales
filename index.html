@@ -32,15 +32,12 @@
         <div class="integral-editor" aria-label="Editor de integrales indefinidas">
           <span class="integral-symbol">∫</span>
           <div class="input-wrapper">
-            <math-field
+            <div
               id="mathField"
-              class="latex-input"
+              class="mathlive-host"
               aria-label="Escribe aquí tu integrando en notación LaTeX"
-              placeholder="(x^2+1)\\sin(x)"
-              virtual-keyboard-mode="off"
-              smart-fence="true"
-              smart-mode="true"
-            ></math-field>
+              data-placeholder="(x^2+1)\\sin(x)"
+            ></div>
             <div id="latexPreview" class="latex-preview" aria-live="polite"></div>
           </div>
           <span class="differential" aria-hidden="true">d<span id="variableDisplay">x</span></span>
