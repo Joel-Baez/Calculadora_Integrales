@@ -7,8 +7,6 @@
   <link rel="stylesheet" href="styles.css">
   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/mathlive@0.92.4/dist/mathlive-static.css">
-  <script defer src="https://unpkg.com/mathlive@0.92.4/dist/mathlive.min.js"></script>
 </head>
 <body>
   <header class="hero">
@@ -32,7 +30,16 @@
         <label for="mathfield" class="sr-only">Integrando</label>
         <div class="integral-editor" aria-label="Editor de integrales indefinidas">
           <span class="integral-symbol">∫</span>
-          <div id="mathfield" class="mathfield" role="textbox" aria-multiline="true"></div>
+          <div class="input-wrapper">
+            <textarea
+              id="latexInput"
+              class="latex-input"
+              aria-label="Escribe aquí tu integrando en notación LaTeX"
+              placeholder="(x^2+1)\\sin(x)"
+              rows="3"
+            ></textarea>
+            <div id="latexPreview" class="latex-preview" aria-live="polite"></div>
+          </div>
           <span class="differential" aria-hidden="true">d<span id="variableDisplay">x</span></span>
         </div>
         <input id="integralInput" type="hidden" value="">

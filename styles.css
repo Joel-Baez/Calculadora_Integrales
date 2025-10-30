@@ -166,35 +166,58 @@ fieldset.field .option {
   color: var(--accent);
 }
 
-.mathfield {
+.input-wrapper {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.latex-input {
+  width: 100%;
   min-height: 3.2rem;
-  font-size: 1.25rem;
-  line-height: 1.6;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
   color: var(--text-primary);
-  background: transparent;
-  border: none;
+  font-family: 'Fira Code', monospace;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.latex-input:focus {
   outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(244, 162, 97, 0.35);
+}
+
+.latex-input.invalid {
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.35);
+}
+
+.latex-preview {
+  min-height: 2.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 0.65rem 0.85rem;
   display: flex;
   align-items: center;
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.mathfield .ML__mathlive {
-  width: 100%;
-  background: transparent;
-  border: none;
-  color: inherit;
-  font-family: 'STIX Two Math', 'Fira Code', monospace;
-  font-size: 1.25rem;
+.latex-preview .mjx-chtml {
+  font-size: 1.15rem;
 }
 
-.mathfield .ML__mathlive:focus-within {
-  outline: none;
-}
-
-.mathfield .ML__placeholder {
-  color: rgba(255, 255, 255, 0.45);
+.preview-placeholder {
   font-style: italic;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .differential {
