@@ -1,6 +1,26 @@
 const integralInput = document.getElementById('integralInput');
 const methodSuggestion = document.getElementById('methodSuggestion');
 const keyboard = document.querySelector('.keyboard');
+const solutionCard = document.getElementById('solutionCard');
+
+const mathFunctions = [
+  'sin', 'cos', 'tan', 'sec', 'csc', 'cot',
+  'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh',
+  'log', 'ln', 'exp', 'sqrt'
+];
+
+const updateMath = () => {
+  if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
+    MathJax.typesetPromise();
+  }
+};
+
+const escapeHTML = (unsafe) => unsafe
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
 
 const methodDetails = {
   substitution: {
@@ -105,31 +125,145 @@ const detectMethod = (rawInput) => {
 const renderMethod = (key) => {
   const method = methodDetails[key] ?? methodDetails.default;
   methodSuggestion.innerHTML = formatSteps(method);
-  MathJax.typesetPromise();
+};
+
+const detectVariable = (rawInput) => {
+  const match = rawInput.match(/d([a-z])\b/i);
+  if (match && match[1]) {
+    return match[1];
+  }
+  if (/\by\b/i.test(rawInput) && !/\bx\b/i.test(rawInput)) {
+    return 'y';
+  }
+  return 'x';
+};
+
+const sanitizeExpression = (rawInput, variable) => {
+  if (!rawInput) {
+    return '';
+  }
+
+  const variablePattern = new RegExp(`d${variable}\\b`, 'gi');
+  const genericDifferential = /d[a-z]\b/gi;
+  const functionPattern = mathFunctions.join('|');
+
+  let expr = rawInput
+    .replace(/∫/gi, '')
+    .replace(variablePattern, '')
+    .replace(genericDifferential, '')
+    .replace(/\\int/gi, '')
+    .replace(/\\,|\\!/g, '')
+    .replace(/π/gi, 'pi')
+    .replace(/√/g, 'sqrt')
+    .replace(/sen/gi, 'sin')
+    .replace(/ctg/gi, 'cot')
+    .replace(/[{}]/g, (char) => (char === '{' ? '(' : ')'))
+    .replace(/\s+/g, '');
+
+  expr = expr.replace(/ln(?=\()/gi, 'log');
+
+  expr = expr
+    .replace(new RegExp(`(\\d)${variable}`, 'g'), `$1*${variable}`)
+    .replace(new RegExp(`(\\d)(?=${functionPattern}\\()`, 'gi'), '$1*')
+    .replace(new RegExp(`${variable}(?=${functionPattern}\\()`, 'gi'), `${variable}*`)
+    .replace(/\)\(/g, ')*(')
+    .replace(new RegExp(`(${variable}|\\d)\(`, 'g'), '$1*(')
+    .replace(new RegExp(`\)(${variable}|\\d)`, 'g'), ')*$1')
+    .replace(new RegExp(`\)(?=${functionPattern}\\()`, 'gi'), ')*')
+    .replace(new RegExp(`${variable}(?=${variable})`, 'g'), `${variable}*`);
+
+  expr = expr.replace(/\*{2,}/g, '*');
+
+  return expr.trim();
+};
+
+const integrateExpression = (expression, variable) => {
+  if (typeof nerdamer === 'undefined') {
+    throw new Error('nerdamer_not_loaded');
+  }
+  return nerdamer.integrate(expression, variable);
+};
+
+const renderSolution = (rawInput) => {
+  if (!rawInput.trim()) {
+    solutionCard.innerHTML = `
+      <h3>Integral resuelta</h3>
+      <p>Ingresa una integral para ver el resultado simbólico acompañado de la constante \(+C\).</p>
+    `;
+    return;
+  }
+
+  const variable = detectVariable(rawInput);
+  const expression = sanitizeExpression(rawInput, variable);
+
+  if (!expression) {
+    solutionCard.innerHTML = `
+      <h3>Integral resuelta</h3>
+      <p class="solution-error">No se pudo interpretar la entrada. Revisa la sintaxis de la integral.</p>
+    `;
+    return;
+  }
+
+  try {
+    const result = integrateExpression(expression, variable);
+    const latex = result.toTeX();
+    const interpretedExpression = escapeHTML(expression.replace(/\*/g, '·'));
+    const safeVariable = escapeHTML(variable);
+
+    solutionCard.innerHTML = `
+      <h3>Integral resuelta</h3>
+      <p class="solution-display">$$${latex} + C$$</p>
+      <p class="solution-note">Variable integrada: <code>${safeVariable}</code></p>
+      <p class="solution-note">Integrando interpretado: <code>${interpretedExpression}</code></p>
+    `;
+  } catch (error) {
+    const message = error.message === 'nerdamer_not_loaded'
+      ? 'No se pudo cargar el motor simbólico. Revisa tu conexión e intenta recargar.'
+      : 'No se pudo integrar simbólicamente la entrada. Intenta reescribir el integrando.';
+    solutionCard.innerHTML = `
+      <h3>Integral resuelta</h3>
+      <p class="solution-error">${message}</p>
+      <p class="solution-note">Entrada interpretada: <code>${escapeHTML(expression)}</code></p>
+    `;
+  }
 };
 
 integralInput.addEventListener('input', (event) => {
   const value = event.target.value;
   if (!value.trim()) {
     methodSuggestion.innerHTML = '<p>Escribe una integral para analizar su estructura.</p>';
+    renderSolution('');
+    updateMath();
     return;
   }
   const methodKey = detectMethod(value);
   renderMethod(methodKey);
+  renderSolution(value);
+  updateMath();
 });
 
 keyboard.addEventListener('click', (event) => {
   if (event.target.matches('button[data-value]')) {
+    event.preventDefault();
     const { value } = event.target.dataset;
-    const cursorPos = integralInput.selectionStart;
-    const current = integralInput.value;
-    const updated = `${current.slice(0, cursorPos)}${value}${current.slice(cursorPos)}`;
-    integralInput.value = updated;
     integralInput.focus();
-    const newPos = cursorPos + value.length;
-    integralInput.setSelectionRange(newPos, newPos);
-    integralInput.dispatchEvent(new Event('input'));
+    const selectionStart = integralInput.selectionStart ?? integralInput.value.length;
+    const selectionEnd = integralInput.selectionEnd ?? selectionStart;
+    const current = integralInput.value;
+    const updated = `${current.slice(0, selectionStart)}${value}${current.slice(selectionEnd)}`;
+    integralInput.value = updated;
+    const newPos = selectionStart + value.length;
+    requestAnimationFrame(() => {
+      integralInput.setSelectionRange(newPos, newPos);
+      integralInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
   }
 });
 
 renderMethod('default');
+renderSolution('');
+updateMath();
+
+if (!(window.MathJax && typeof MathJax.typesetPromise === 'function')) {
+  window.addEventListener('load', updateMath);
+}

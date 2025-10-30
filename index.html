@@ -42,13 +42,17 @@
         <button type="button" data-value="+">+</button>
         <button type="button" data-value="-">-</button>
       </div>
-      <p class="hint">La integral ingresada no será resuelta directamente: recibirás un ejemplo muy similar para estudiar el método sugerido.</p>
+      <p class="hint">Escribe el integrando usando <code>x</code> como variable principal. El resultado simbólico incluye la constante +C y se muestra junto con un ejemplo similar para estudiar el método sugerido.</p>
     </section>
 
     <section class="result-panel" aria-live="polite">
       <h2>Método sugerido</h2>
       <div id="methodSuggestion" class="method-card">
         <p>Escribe una integral para analizar su estructura.</p>
+      </div>
+      <div id="solutionCard" class="method-card solution-card">
+        <h3>Integral resuelta</h3>
+        <p>Ingresa una integral para ver el resultado simbólico acompañado de la constante \(+C\).</p>
       </div>
     </section>
   </main>
@@ -57,6 +61,8 @@
     <p>Desarrollado para inspirar el estudio creativo del cálculo integral.</p>
   </footer>
 
-  <script src="app.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/nerdamer/1.1.11/nerdamer.core.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/nerdamer/1.1.11/nerdamer.all.min.js" defer></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
