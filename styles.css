@@ -99,6 +99,65 @@ body {
   border-color: var(--accent);
 }
 
+.input-controls {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.field label,
+.field legend {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.field input[type="text"] {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: var(--text-primary);
+  padding: 0.55rem 0.75rem;
+  font-family: 'Fira Code', monospace;
+  font-size: 1rem;
+  transition: border 0.2s ease;
+}
+
+.field input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.field.small {
+  max-width: 140px;
+}
+
+fieldset.field {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  min-width: 220px;
+}
+
+fieldset.field .option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-right: 1rem;
+  font-weight: 600;
+}
+
 .integral-symbol {
   font-size: 2.4rem;
   margin-right: 0.75rem;
@@ -113,6 +172,24 @@ body {
   font-size: 1.2rem;
   outline: none;
   font-family: 'Fira Code', monospace;
+}
+
+.differential {
+  margin-left: 0.75rem;
+  font-size: 1.1rem;
+  color: var(--accent);
+  opacity: 0.85;
+}
+
+.bounds {
+  display: none;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.bounds.visible {
+  display: flex;
+  flex-wrap: wrap;
 }
 
 .keyboard {
@@ -147,6 +224,26 @@ body {
   line-height: 1.5;
 }
 
+.primary {
+  margin-top: 1.5rem;
+  background: var(--accent);
+  border: none;
+  border-radius: 16px;
+  padding: 0.9rem 1.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #0f172a;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.primary:hover,
+.primary:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+  outline: none;
+}
+
 .method-card {
   background: rgba(15, 23, 42, 0.6);
   border-radius: 20px;
@@ -174,6 +271,31 @@ body {
   color: var(--accent);
 }
 
+.status {
+  background: rgba(15, 23, 42, 0.55);
+  border-radius: 16px;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.status.loading {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.status.error {
+  border-color: var(--accent-strong);
+  color: var(--accent-strong);
+}
+
+.status.success {
+  border-color: rgba(52, 211, 153, 0.75);
+  color: rgba(167, 243, 208, 0.95);
+}
+
 .method-card .badge {
   align-self: flex-start;
   background: rgba(255, 255, 255, 0.1);
@@ -199,22 +321,24 @@ body {
   position: relative;
 }
 
-.step-list li::before {
-  content: "✦";
-  color: var(--accent-strong);
-  font-size: 1.1rem;
-  margin-right: 0.5rem;
-  position: absolute;
-  left: 0.75rem;
-  top: 0.85rem;
+.feature-list,
+.notes ul,
+.warnings ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  list-style: disc;
 }
 
-.step-list li span {
-  display: block;
-  padding-left: 1.5rem;
+.feature-list li,
+.notes li,
+.warnings li {
+  line-height: 1.5;
 }
 
-.solution-card .solution-display {
+.solution-card .solution {
   font-size: 1.2rem;
   background: rgba(255, 255, 255, 0.08);
   padding: 0.85rem 1rem;
@@ -222,23 +346,58 @@ body {
   text-align: center;
 }
 
+.evaluation,
+.notes,
+.warnings {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+}
+
+.evaluation h4,
+.notes h4,
+.warnings h4 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+.similar {
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0;
+}
+
+.similar-example {
+  font-size: 1.1rem;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 0.6rem 0.85rem;
+  border-radius: 12px;
+}
+
+.step-list li::before {
+  content: "✦";
+  color: var(--accent-strong);
+  font-size: 1.1rem;
+  margin-right: 0.5rem;
+  position: absolute;
+  left: 0.75rem;
+  top: 1rem;
+}
+
+.step-list li span {
+  display: block;
+  padding-left: 1.75rem;
+}
+
+.solution-card.loading {
+  opacity: 0.6;
+}
+
 .solution-card .solution-error {
   color: var(--accent-strong);
   font-weight: 600;
-}
-
-.solution-card code {
-  background: rgba(15, 23, 42, 0.45);
-  padding: 0.15rem 0.35rem;
-  border-radius: 6px;
-  font-family: 'Fira Code', monospace;
-  color: var(--text-secondary);
-}
-
-.solution-card .solution-note {
-  margin: 0;
-  font-size: 0.95rem;
-  color: var(--text-secondary);
 }
 
 footer {
@@ -266,5 +425,13 @@ footer {
 
   .keyboard {
     grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+
+  .input-controls {
+    flex-direction: column;
+  }
+
+  fieldset.field {
+    min-width: auto;
   }
 }

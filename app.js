@@ -1,269 +1,226 @@
+const form = document.getElementById('integralForm');
 const integralInput = document.getElementById('integralInput');
-const methodSuggestion = document.getElementById('methodSuggestion');
+const variableInput = document.getElementById('variableInput');
+const boundsSection = document.querySelector('[data-bounds]');
+const lowerBoundInput = document.getElementById('lowerBound');
+const upperBoundInput = document.getElementById('upperBound');
 const keyboard = document.querySelector('.keyboard');
+const statusMessage = document.getElementById('statusMessage');
+const analysisCard = document.getElementById('analysisCard');
 const solutionCard = document.getElementById('solutionCard');
+const methodSuggestion = document.getElementById('methodSuggestion');
 
-const mathFunctions = [
-  'sin', 'cos', 'tan', 'sec', 'csc', 'cot',
-  'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh',
-  'log', 'ln', 'exp', 'sqrt'
-];
+const TYPES = {
+  indefinite: 'indefinida',
+  definite: 'definida'
+};
 
-const updateMath = () => {
+const setStatus = (message, variant = 'idle') => {
+  statusMessage.textContent = message;
+  statusMessage.className = `status ${variant}`;
+};
+
+const updateBoundsVisibility = () => {
+  const type = form.elements['integralType'].value;
+  if (type === 'definite') {
+    boundsSection.hidden = false;
+    boundsSection.classList.add('visible');
+  } else {
+    boundsSection.hidden = true;
+    boundsSection.classList.remove('visible');
+    lowerBoundInput.value = '';
+    upperBoundInput.value = '';
+  }
+};
+
+Array.from(form.elements['integralType']).forEach((radio) => {
+  radio.addEventListener('change', updateBoundsVisibility);
+});
+
+const insertAtCursor = (field, value) => {
+  const start = field.selectionStart;
+  const end = field.selectionEnd;
+  const original = field.value;
+  let insertion = value;
+  let newPosition = start + value.length;
+
+  if (value.endsWith('()')) {
+    newPosition = start + value.length - 1;
+  }
+
+  field.value = `${original.slice(0, start)}${insertion}${original.slice(end)}`;
+
+  field.focus();
+  field.setSelectionRange(newPosition, newPosition);
+};
+
+keyboard.addEventListener('click', (event) => {
+  if (!(event.target instanceof HTMLButtonElement)) {
+    return;
+  }
+  const { value } = event.target.dataset;
+  if (!value) {
+    return;
+  }
+  insertAtCursor(integralInput, value);
+});
+
+const renderAnalysis = (analysis) => {
+  const { sanitized_expression: sanitized, variable, type, detected_features: features = [], warnings = [] } = analysis;
+  const featureList = features.length
+    ? `<ul class="feature-list">${features.map((item) => `<li>${item}</li>`).join('')}</ul>`
+    : '<p>No se detectaron patrones especiales más allá de la forma general.</p>';
+
+  const warningsList = warnings.length
+    ? `<div class="warnings"><h4>Advertencias</h4><ul>${warnings.map((item) => `<li>${item}</li>`).join('')}</ul></div>`
+    : '';
+
+  analysisCard.innerHTML = `
+    <h3>Análisis del integrando</h3>
+    <p><strong>Variable:</strong> ${variable}</p>
+    <p><strong>Tipo seleccionado:</strong> ${TYPES[type] ?? type}</p>
+    <p><strong>Integrando interpretado:</strong> $$${sanitized || '0'}$$</p>
+    ${featureList}
+    ${warningsList}
+  `;
+};
+
+const renderSolution = (result, type) => {
+  if (!result || result.status !== 'ok') {
+    solutionCard.innerHTML = `
+      <h3>Resultado simbólico</h3>
+      <p>No se pudo calcular la integral. Revisa el mensaje de error y vuelve a intentarlo.</p>
+    `;
+    return;
+  }
+
+  const { integral_latex: latexResult, evaluation_latex: evaluationLatex, extra_notes: notes = [] } = result;
+
+  const evaluationSection = evaluationLatex
+    ? `<div class="evaluation"><h4>Evaluación</h4><p>$$${evaluationLatex}$$</p></div>`
+    : '';
+
+  const notesSection = notes.length
+    ? `<div class="notes"><h4>Notas</h4><ul>${notes.map((item) => `<li>${item}</li>`).join('')}</ul></div>`
+    : '';
+
+  solutionCard.innerHTML = `
+    <h3>Resultado simbólico (${TYPES[type] ?? type})</h3>
+    <p class="solution">$$${latexResult}$$</p>
+    ${evaluationSection}
+    ${notesSection}
+  `;
+};
+
+const renderMethod = (method) => {
+  if (!method) {
+    methodSuggestion.innerHTML = `
+      <h3>Método sugerido</h3>
+      <p>No fue posible determinar un método predominante.</p>
+    `;
+    return;
+  }
+
+  const { title, badge, summary, example, steps = [] } = method;
+
+  const stepsList = steps.length
+    ? `<ol class="step-list">${steps.map((step) => `<li>${step}</li>`).join('')}</ol>`
+    : '';
+
+  methodSuggestion.innerHTML = `
+    <div class="badge">${badge}</div>
+    <h3>${title}</h3>
+    <p>${summary}</p>
+    <p class="similar">Ejemplo similar:</p>
+    <p class="similar-example">$$${example}$$</p>
+    ${stepsList}
+  `;
+};
+
+const requestAnalysis = async (payload) => {
+  const response = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || 'Error inesperado en el servidor.');
+  }
+
+  return response.json();
+};
+
+const retypeset = () => {
   if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
     MathJax.typesetPromise();
   }
 };
 
-const escapeHTML = (unsafe) => unsafe
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#039;');
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
 
-const methodDetails = {
-  substitution: {
-    title: 'Sustitución simple',
-    badge: 'u-substitución',
-    similarIntegral: '\\int (3x^2 + 1)\\,\\cos(x^3 + x)\\,dx',
-    explanation: 'Se observa una composición de funciones donde la derivada del interior aparece multiplicando al exterior.',
-    steps: [
-      'Elige \(u = x^3 + x\), entonces \(du = (3x^2 + 1)\\,dx\).',
-      'Reescribe la integral como \(\\int \\cos(u)\\,du\).',
-      'Integra: \(\\int \\cos(u)\\,du = \\sin(u) + C\).',
-      'Regresa a x: \(\\sin(x^3 + x) + C\).'
-    ]
-  },
-  parts: {
-    title: 'Integración por partes',
-    badge: 'u dv',
-    similarIntegral: '\\int x\\,e^x\\,dx',
-    explanation: 'Se identifica un producto de funciones donde una se simplifica al derivar y la otra es fácil de integrar.',
-    steps: [
-      'Elige \(u = x\) y \(dv = e^x dx\).',
-      'Calcula \(du = dx\) y \(v = e^x\).',
-      'Aplica la fórmula: \(\\int u\\,dv = u v - \\int v\\,du\).',
-      'Obtén \(x e^x - \\int e^x dx = x e^x - e^x + C\).'
-    ]
-  },
-  trig: {
-    title: 'Sustitución trigonométrica',
-    badge: 'θ-substitución',
-    similarIntegral: '\\int \\frac{dx}{\\sqrt{1 - x^2}}',
-    explanation: 'La raíz cuadrada con \(1 - x^2\) sugiere un triángulo asociado a \(x = \\sin\\theta\).',
-    steps: [
-      'Define \(x = \\sin\\theta\), entonces \(dx = \\cos\\theta\\,d\\theta\).',
-      'Sustituye: \(\\int \\frac{\\cos\\theta}{\\sqrt{1 - \\sin^2\\theta}}\\,d\\theta\).',
-      'Usa la identidad \(1 - \\sin^2\\theta = \\cos^2\\theta\) y simplifica a \(\\int d\\theta\).',
-      'Integra: \(\\theta + C\) y regresa a x: \(\\arcsin(x) + C\).'
-    ]
-  },
-  partialFractions: {
-    title: 'Fracciones parciales',
-    badge: 'descomposición',
-    similarIntegral: '\\int \\frac{2x + 3}{x^2 + 3x}\\,dx',
-    explanation: 'Una función racional con denominador factorizable sugiere descomponer en fracciones más simples.',
-    steps: [
-      'Factoriza el denominador: \(x^2 + 3x = x(x + 3)\).',
-      'Plantea \(\\frac{2x + 3}{x(x + 3)} = \\frac{A}{x} + \\frac{B}{x + 3}\).',
-      'Encuentra A y B: resolviendo, \(A = 1\) y \(B = 1\).',
-      'Integra cada término: \(\\int (\\frac{1}{x} + \\frac{1}{x + 3}) dx = \\ln|x| + \\ln|x + 3| + C\).'
-    ]
-  },
-  default: {
-    title: 'Exploración general',
-    badge: 'observación',
-    similarIntegral: '\\int (x^2 + 1)\\,dx',
-    explanation: 'No se detectó una estructura clara. Revisa simplificaciones previas o prueba completar cuadrados.',
-    steps: [
-      'Simplifica el integrando para identificar patrones.',
-      'Busca productos, composiciones o denominadores factorizables.',
-      'Aplica técnicas básicas de integración término a término.'
-    ]
-  }
-};
-
-const formatSteps = (method) => {
-  return `
-    <div class="badge">${method.badge}</div>
-    <h3>${method.title}</h3>
-    <p>${method.explanation}</p>
-    <p class="similar">Ejemplo similar: $$${method.similarIntegral}$$</p>
-    <ul class="step-list">
-      ${method.steps.map(step => `<li><span>${step}</span></li>`).join('')}
-    </ul>
-  `;
-};
-
-const detectMethod = (rawInput) => {
-  const input = rawInput.toLowerCase().replace(/\s+/g, '');
-
-  const hasTrig = /(sin|cos|tan|sec|csc|cot)/.test(input);
-  const hasSqrt = /√|sqrt\(/.test(input);
-  const hasLn = /ln\(/.test(input);
-  const hasExp = /e\^|exp\(/.test(input);
-  const hasProduct = /[a-z]([a-z]|\(|\^).*([a-z]|\^)/.test(input) && input.includes('*');
-  const hasRational = /\//.test(input) && /(x\^\d|x\(|\)x)/.test(input);
-  const hasComposite = /(\(.*x.*\))\^|sin\(|cos\(|tan\(|ln\(|exp\(/.test(input));
-
-  if (hasTrig && hasSqrt) {
-    return 'trig';
-  }
-  if (hasProduct || (hasLn && /x/.test(input)) || (hasExp && /x/.test(input))) {
-    return 'parts';
-  }
-  if (hasRational) {
-    return 'partialFractions';
-  }
-  if (hasComposite || hasTrig) {
-    return 'substitution';
-  }
-  return 'default';
-};
-
-const renderMethod = (key) => {
-  const method = methodDetails[key] ?? methodDetails.default;
-  methodSuggestion.innerHTML = formatSteps(method);
-};
-
-const detectVariable = (rawInput) => {
-  const match = rawInput.match(/d([a-z])\b/i);
-  if (match && match[1]) {
-    return match[1];
-  }
-  if (/\by\b/i.test(rawInput) && !/\bx\b/i.test(rawInput)) {
-    return 'y';
-  }
-  return 'x';
-};
-
-const sanitizeExpression = (rawInput, variable) => {
-  if (!rawInput) {
-    return '';
-  }
-
-  const variablePattern = new RegExp(`d${variable}\\b`, 'gi');
-  const genericDifferential = /d[a-z]\b/gi;
-  const functionPattern = mathFunctions.join('|');
-
-  let expr = rawInput
-    .replace(/∫/gi, '')
-    .replace(variablePattern, '')
-    .replace(genericDifferential, '')
-    .replace(/\\int/gi, '')
-    .replace(/\\,|\\!/g, '')
-    .replace(/π/gi, 'pi')
-    .replace(/√/g, 'sqrt')
-    .replace(/sen/gi, 'sin')
-    .replace(/ctg/gi, 'cot')
-    .replace(/[{}]/g, (char) => (char === '{' ? '(' : ')'))
-    .replace(/\s+/g, '');
-
-  expr = expr.replace(/ln(?=\()/gi, 'log');
-
-  expr = expr
-    .replace(new RegExp(`(\\d)${variable}`, 'g'), `$1*${variable}`)
-    .replace(new RegExp(`(\\d)(?=${functionPattern}\\()`, 'gi'), '$1*')
-    .replace(new RegExp(`${variable}(?=${functionPattern}\\()`, 'gi'), `${variable}*`)
-    .replace(/\)\(/g, ')*(')
-    .replace(new RegExp(`(${variable}|\\d)\(`, 'g'), '$1*(')
-    .replace(new RegExp(`\)(${variable}|\\d)`, 'g'), ')*$1')
-    .replace(new RegExp(`\)(?=${functionPattern}\\()`, 'gi'), ')*')
-    .replace(new RegExp(`${variable}(?=${variable})`, 'g'), `${variable}*`);
-
-  expr = expr.replace(/\*{2,}/g, '*');
-
-  return expr.trim();
-};
-
-const integrateExpression = (expression, variable) => {
-  if (typeof nerdamer === 'undefined') {
-    throw new Error('nerdamer_not_loaded');
-  }
-  return nerdamer.integrate(expression, variable);
-};
-
-const renderSolution = (rawInput) => {
-  if (!rawInput.trim()) {
-    solutionCard.innerHTML = `
-      <h3>Integral resuelta</h3>
-      <p>Ingresa una integral para ver el resultado simbólico acompañado de la constante \(+C\).</p>
-    `;
-    return;
-  }
-
-  const variable = detectVariable(rawInput);
-  const expression = sanitizeExpression(rawInput, variable);
+  const expression = integralInput.value.trim();
+  const variable = variableInput.value.trim() || 'x';
+  const type = form.elements['integralType'].value;
+  const lower = lowerBoundInput.value.trim();
+  const upper = upperBoundInput.value.trim();
 
   if (!expression) {
-    solutionCard.innerHTML = `
-      <h3>Integral resuelta</h3>
-      <p class="solution-error">No se pudo interpretar la entrada. Revisa la sintaxis de la integral.</p>
-    `;
+    setStatus('Por favor escribe un integrando antes de analizar.', 'error');
     return;
   }
+
+  if (!/^[-+*/^(){}\\s0-9a-zA-Zπ√.,]+$/.test(expression.replace(/(sin|cos|tan|cot|sec|csc|asin|acos|atan|sinh|cosh|tanh|log|ln|exp)/g, ''))){
+    setStatus('Se detectaron símbolos no soportados. Usa funciones matemáticas estándar.', 'error');
+    return;
+  }
+
+  if (!/^[a-zA-Z]+$/.test(variable)) {
+    setStatus('La variable principal debe contener solo letras.', 'error');
+    return;
+  }
+
+  if (type === 'definite' && (!lower || !upper)) {
+    setStatus('Para integrales definidas debes indicar límites inferior y superior.', 'error');
+    return;
+  }
+
+  setStatus('Analizando y resolviendo la integral con Python…', 'loading');
+  solutionCard.classList.add('loading');
 
   try {
-    const result = integrateExpression(expression, variable);
-    const latex = result.toTeX();
-    const interpretedExpression = escapeHTML(expression.replace(/\*/g, '·'));
-    const safeVariable = escapeHTML(variable);
+    const payload = {
+      expression,
+      variable,
+      type,
+      lower_bound: type === 'definite' ? lower : null,
+      upper_bound: type === 'definite' ? upper : null
+    };
 
-    solutionCard.innerHTML = `
-      <h3>Integral resuelta</h3>
-      <p class="solution-display">$$${latex} + C$$</p>
-      <p class="solution-note">Variable integrada: <code>${safeVariable}</code></p>
-      <p class="solution-note">Integrando interpretado: <code>${interpretedExpression}</code></p>
-    `;
+    const data = await requestAnalysis(payload);
+
+    if (data.status !== 'ok') {
+      throw new Error(data.error || 'No se pudo procesar la integral.');
+    }
+
+    renderAnalysis(data.analysis);
+    renderSolution(data.result, data.analysis.type);
+    renderMethod(data.method);
+    setStatus('Integral procesada correctamente.', 'success');
   } catch (error) {
-    const message = error.message === 'nerdamer_not_loaded'
-      ? 'No se pudo cargar el motor simbólico. Revisa tu conexión e intenta recargar.'
-      : 'No se pudo integrar simbólicamente la entrada. Intenta reescribir el integrando.';
-    solutionCard.innerHTML = `
-      <h3>Integral resuelta</h3>
-      <p class="solution-error">${message}</p>
-      <p class="solution-note">Entrada interpretada: <code>${escapeHTML(expression)}</code></p>
-    `;
-  }
-};
-
-integralInput.addEventListener('input', (event) => {
-  const value = event.target.value;
-  if (!value.trim()) {
-    methodSuggestion.innerHTML = '<p>Escribe una integral para analizar su estructura.</p>';
-    renderSolution('');
-    updateMath();
-    return;
-  }
-  const methodKey = detectMethod(value);
-  renderMethod(methodKey);
-  renderSolution(value);
-  updateMath();
-});
-
-keyboard.addEventListener('click', (event) => {
-  if (event.target.matches('button[data-value]')) {
-    event.preventDefault();
-    const { value } = event.target.dataset;
-    integralInput.focus();
-    const selectionStart = integralInput.selectionStart ?? integralInput.value.length;
-    const selectionEnd = integralInput.selectionEnd ?? selectionStart;
-    const current = integralInput.value;
-    const updated = `${current.slice(0, selectionStart)}${value}${current.slice(selectionEnd)}`;
-    integralInput.value = updated;
-    const newPos = selectionStart + value.length;
-    requestAnimationFrame(() => {
-      integralInput.setSelectionRange(newPos, newPos);
-      integralInput.dispatchEvent(new Event('input', { bubbles: true }));
-    });
+    console.error(error);
+    setStatus(error.message || 'Ocurrió un error al procesar la integral.', 'error');
+    renderSolution(null);
+    renderMethod(null);
+  } finally {
+    solutionCard.classList.remove('loading');
+    retypeset();
   }
 });
 
-renderMethod('default');
-renderSolution('');
-updateMath();
-
-if (!(window.MathJax && typeof MathJax.typesetPromise === 'function')) {
-  window.addEventListener('load', updateMath);
-}
+updateBoundsVisibility();
+retypeset();

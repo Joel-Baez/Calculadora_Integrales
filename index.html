@@ -12,47 +12,88 @@
   <header class="hero">
     <div class="hero-content">
       <h1>Calculadora Creativa de Integrales</h1>
-      <p>Ingresa una integral indefinida y obtén la sugerencia del método de integración con un ejemplo muy similar, explicado paso a paso en \(\LaTeX\).</p>
+      <p>Ingresa una integral (definida o indefinida) y obtén una sugerencia del método de integración acompañada de un ejemplo muy similar explicado paso a paso en \(\LaTeX\).</p>
     </div>
   </header>
 
   <main class="container">
     <section class="input-panel">
       <h2>Introduce tu integral</h2>
-      <label for="integralInput" class="sr-only">Integrando</label>
-      <div class="input-wrapper">
-        <span class="integral-symbol">∫</span>
-        <input id="integralInput" type="text" placeholder="ej. (x^2 + 1) * sin(x) dx" autocomplete="off">
-      </div>
-      <div class="keyboard" aria-label="Teclado matemático">
-        <button type="button" data-value="∫">∫</button>
-        <button type="button" data-value="dx">dx</button>
-        <button type="button" data-value="^">^</button>
-        <button type="button" data-value="√">√</button>
-        <button type="button" data-value="π">π</button>
-        <button type="button" data-value="sin(x)">sin</button>
-        <button type="button" data-value="cos(x)">cos</button>
-        <button type="button" data-value="tan(x)">tan</button>
-        <button type="button" data-value="e^x">e^x</button>
-        <button type="button" data-value="ln(x)">ln</button>
-        <button type="button" data-value="(">(</button>
-        <button type="button" data-value=")">)</button>
-        <button type="button" data-value="/">/</button>
-        <button type="button" data-value="*">*</button>
-        <button type="button" data-value="+">+</button>
-        <button type="button" data-value="-">-</button>
-      </div>
-      <p class="hint">Escribe el integrando usando <code>x</code> como variable principal. El resultado simbólico incluye la constante +C y se muestra junto con un ejemplo similar para estudiar el método sugerido.</p>
+      <form id="integralForm">
+        <div class="input-controls">
+          <div class="field small">
+            <label for="variableInput">Variable principal</label>
+            <input id="variableInput" type="text" value="x" maxlength="5" autocomplete="off">
+          </div>
+          <fieldset class="field">
+            <legend>Tipo de integral</legend>
+            <label class="option">
+              <input type="radio" name="integralType" value="indefinite" checked>
+              Indefinida
+            </label>
+            <label class="option">
+              <input type="radio" name="integralType" value="definite">
+              Definida
+            </label>
+          </fieldset>
+        </div>
+
+        <div class="bounds" data-bounds hidden>
+          <div class="field small">
+            <label for="lowerBound">Límite inferior</label>
+            <input id="lowerBound" type="text" autocomplete="off" placeholder="a">
+          </div>
+          <div class="field small">
+            <label for="upperBound">Límite superior</label>
+            <input id="upperBound" type="text" autocomplete="off" placeholder="b">
+          </div>
+        </div>
+
+        <label for="integralInput" class="sr-only">Integrando</label>
+        <div class="input-wrapper">
+          <span class="integral-symbol">∫</span>
+          <input id="integralInput" type="text" placeholder="ej. (x^2 + 1)*sin(x)" autocomplete="off" required>
+          <span class="differential" aria-hidden="true">dx</span>
+        </div>
+
+        <div class="keyboard" aria-label="Teclado matemático">
+          <button type="button" data-value="∫">∫</button>
+          <button type="button" data-value="dx">dx</button>
+          <button type="button" data-value="^">^</button>
+          <button type="button" data-value="√">√</button>
+          <button type="button" data-value="π">π</button>
+          <button type="button" data-value="sin()">sin</button>
+          <button type="button" data-value="cos()">cos</button>
+          <button type="button" data-value="tan()">tan</button>
+          <button type="button" data-value="exp()">eˣ</button>
+          <button type="button" data-value="ln()">ln</button>
+          <button type="button" data-value="(">(</button>
+          <button type="button" data-value=")">)</button>
+          <button type="button" data-value="/">/</button>
+          <button type="button" data-value="*">*</button>
+          <button type="button" data-value="+">+</button>
+          <button type="button" data-value="-">-</button>
+        </div>
+
+        <button type="submit" class="primary">Analizar integral</button>
+      </form>
+      <p class="hint">Escribe el integrando usando la variable indicada. El motor simbólico escrito en Python evalúa la integral (definida o indefinida), sugiere un método apropiado y muestra un ejemplo similar con pasos en \(\LaTeX\).</p>
     </section>
 
     <section class="result-panel" aria-live="polite">
-      <h2>Método sugerido</h2>
-      <div id="methodSuggestion" class="method-card">
-        <p>Escribe una integral para analizar su estructura.</p>
+      <h2>Resultados</h2>
+      <div id="statusMessage" class="status" role="status">Escribe una integral para comenzar.</div>
+      <div id="analysisCard" class="method-card">
+        <h3>Análisis del integrando</h3>
+        <p>Detectaremos automáticamente la variable y las características relevantes del integrando.</p>
       </div>
       <div id="solutionCard" class="method-card solution-card">
-        <h3>Integral resuelta</h3>
-        <p>Ingresa una integral para ver el resultado simbólico acompañado de la constante \(+C\).</p>
+        <h3>Resultado simbólico</h3>
+        <p>Ingresa una integral para ver la antiderivada o el valor definido calculado con SymPy.</p>
+      </div>
+      <div id="methodSuggestion" class="method-card">
+        <h3>Método sugerido</h3>
+        <p>Obtendrás un método recomendado con un ejemplo muy parecido y sus pasos clave en \(\LaTeX\).</p>
       </div>
     </section>
   </main>
@@ -61,8 +102,6 @@
     <p>Desarrollado para inspirar el estudio creativo del cálculo integral.</p>
   </footer>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/nerdamer/1.1.11/nerdamer.core.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/nerdamer/1.1.11/nerdamer.all.min.js" defer></script>
   <script src="app.js" defer></script>
 </body>
 </html>
