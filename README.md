@@ -5,7 +5,8 @@ Aplicación web con backend en Python que analiza integrales indefinidas, sugier
 ## Características principales
 
 - **Motor de análisis en Python**: el servidor Flask utiliza SymPy para validar la expresión, detectar patrones e interpretar el integrando en \(\LaTeX\), sin exponer directamente la integral ingresada como resultado.
-- **Detección heurística de métodos**: identifica sustitución simple, integración por partes, sustitución trigonométrica y fracciones parciales, mostrando un ejemplo semejante con anotaciones de \(u\), \(du\), \(dv\), \(v\) y los retornos a la variable original.
+- **Detección heurística de métodos**: identifica sustitución simple, integración por partes, sustitución trigonométrica, fracciones parciales y casos con factores repetidos, mostrando un ejemplo semejante con anotaciones de \(u\), \(du\), \(dv\), \(v\), \(\theta\) y los retornos a la variable original.
+- **Editor matemático en \(\LaTeX\)**: el integrando se escribe en un campo MathLive enriquecido con teclado contextual para números, operadores, funciones, trigonometría y ayudas de método.
 - **Ejemplo guiado en LaTeX**: cada método trae un problema representativo, su solución final y un cuadro con los datos clave (como \(u\), \(du\) o el ángulo \(\theta\)) para seguir el razonamiento paso a paso.
 - **Interfaz responsiva y vistosa**: paneles translúcidos, tipografía moderna y estados informativos que acompañan el flujo de análisis.
 - **Teclado matemático segmentado**: botones agrupados por categorías (general, funciones, sustitución, fracciones parciales, etc.) que facilitan la captura del integrando desde la propia interfaz.
@@ -36,8 +37,8 @@ pip install -r requirements.txt
 
 ## Consejos de entrada
 
-- Usa el selector de variable para indicar la letra principal (por defecto `x`). La sanitización también acepta notación como `sen`, `tg`, `√` o `π` y la traduce a funciones de SymPy.
-- Escribe multiplicaciones explícitas (`*`) cuando el integrando pueda ser ambiguo (por ejemplo, `x*sin(x)` en lugar de `x sin(x)`).
+- Usa el selector de variable para indicar la letra principal (por defecto `x`). La sanitización también acepta notación como `sen`, `tg`, `√`, `π`, `\sin`, `\frac{}`, etc., y la traduce a funciones de SymPy.
+- Aprovecha el editor en \(\LaTeX\): puedes teclear expresiones como `\frac{2x}{x^2+1}` o apoyarte en el teclado integrado para insertar fracciones, raíces, trigonometría y símbolos auxiliares.
 - Recuerda que solo se analizan integrales indefinidas: la respuesta consiste en la técnica sugerida y un ejemplo análogo resuelto, no en la antiderivada de tu entrada.
 - El método sugerido puede diferir del que usarías manualmente, pero siempre viene acompañado de las sustituciones (\(u\), \(du\), \(dv\), \(v\), \(\theta\), etc.) y los pasos para replicarlo.
 

@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="styles.css">
   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script defer src="https://unpkg.com/mathlive@0.92.4/dist/mathlive.min.js"></script>
 </head>
 <body>
   <header class="hero">
@@ -27,12 +28,13 @@
           </div>
         </div>
 
-        <label for="integralInput" class="sr-only">Integrando</label>
+        <label for="mathfield" class="sr-only">Integrando</label>
         <div class="integral-editor" aria-label="Editor de integrales indefinidas">
           <span class="integral-symbol">∫</span>
-          <textarea id="integralInput" rows="2" placeholder="ej. (x^2 + 1)*sin(x)" autocomplete="off" required></textarea>
-          <span class="differential" aria-hidden="true">dx</span>
+          <math-field id="mathfield" class="mathfield" placeholder="Escribe aquí tu integrando" smart-mode virtual-keyboard-mode="manual"></math-field>
+          <span class="differential" aria-hidden="true">d<span id="variableDisplay">x</span></span>
         </div>
+        <input id="integralInput" type="hidden" value="">
 
         <div class="keyboard" aria-label="Teclado matemático">
           <div class="keyboard-tabs" id="keyboardTabs" role="tablist" aria-label="Categorías de símbolos matemáticos"></div>
@@ -42,10 +44,10 @@
         <div class="example-pills" aria-label="Ejemplos de integrales">
           <span>Ejemplos rápidos:</span>
           <div class="pill-group">
-            <button type="button" class="pill" data-example="(x^2+1)*sin(x)">∫ (x²+1)·sin(x) dx</button>
-            <button type="button" class="pill" data-example="x*exp(x)">∫ x·e<sup>x</sup> dx</button>
-            <button type="button" class="pill" data-example="1/sqrt(1-x^2)">∫ 1/√(1-x²) dx</button>
-            <button type="button" class="pill" data-example="(2*x+3)/(x^2+3*x)">∫ (2x+3)/(x²+3x) dx</button>
+            <button type="button" class="pill" data-latex="\\left(x^{2}+1\\right)\\sin(x)">∫ \((x^{2}+1)\sin(x)\) dx</button>
+            <button type="button" class="pill" data-latex="x e^{x}">∫ \(x e^{x}\) dx</button>
+            <button type="button" class="pill" data-latex="\\frac{1}{\\sqrt{1-x^{2}}}">∫ \(\frac{1}{\sqrt{1-x^{2}}}\) dx</button>
+            <button type="button" class="pill" data-latex="\\frac{2x+3}{x^{2}+3x}">∫ \(\frac{2x+3}{x^{2}+3x}\) dx</button>
           </div>
         </div>
 

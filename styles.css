@@ -166,26 +166,32 @@ fieldset.field .option {
   color: var(--accent);
 }
 
-#integralInput {
+.mathfield {
   flex: 1;
+  min-height: 3.2rem;
+  font-size: 1.25rem;
+  line-height: 1.6;
+  color: var(--text-primary);
   background: transparent;
   border: none;
-  color: var(--text-primary);
-  font-size: 1.2rem;
   outline: none;
-  font-family: 'Fira Code', monospace;
-  resize: none;
-  min-height: 2.6rem;
-  line-height: 1.6;
 }
 
-#integralInput::-webkit-scrollbar {
-  width: 6px;
+math-field::part(content) {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-family: 'STIX Two Math', 'Fira Code', monospace;
 }
 
-#integralInput::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
+math-field::part(placeholder) {
+  color: rgba(255, 255, 255, 0.45);
+  font-style: italic;
+}
+
+math-field::part(caret) {
+  border-left-color: var(--accent);
 }
 
 .differential {
@@ -243,12 +249,18 @@ fieldset.field .option {
   background: rgba(255, 255, 255, 0.16);
   border: 1px solid transparent;
   border-radius: 16px;
-  padding: 0.75rem 0.5rem;
+  padding: 0.75rem 0.6rem;
   color: var(--text-primary);
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: 0.95rem;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  white-space: normal;
 }
 
 .keyboard-grid .key:hover,
@@ -370,6 +382,34 @@ fieldset.field .option {
   color: rgba(167, 243, 208, 0.95);
 }
 
+.integral-display {
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 0.8rem 1rem;
+  font-size: 1.2rem;
+  margin: 0 0 1rem;
+  text-align: center;
+}
+
+.analysis-details {
+  display: grid;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.analysis-details .detail-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.analysis-details .detail-value {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--text-primary);
+}
+
 .method-card .badge {
   align-self: flex-start;
   background: rgba(255, 255, 255, 0.1);
@@ -385,14 +425,17 @@ fieldset.field .option {
   padding: 0;
   margin: 0;
   display: grid;
-  gap: 0.8rem;
+  gap: 0.9rem;
+  counter-reset: step-counter;
 }
 
 .step-list li {
+  counter-increment: step-counter;
   background: rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  padding: 1rem 1.1rem 1rem 3.25rem;
   position: relative;
+  line-height: 1.6;
 }
 
 .feature-list,
@@ -485,23 +528,23 @@ fieldset.field .option {
 }
 
 .setup-value {
-  font-family: 'Fira Code', monospace;
+  font-family: 'STIX Two Math', 'Fira Code', monospace;
   font-size: 1rem;
 }
 
 .step-list li::before {
-  content: "✦";
-  color: var(--accent-strong);
-  font-size: 1.1rem;
-  margin-right: 0.5rem;
+  content: counter(step-counter);
   position: absolute;
-  left: 0.75rem;
+  left: 1.1rem;
   top: 1rem;
-}
-
-.step-list li span {
-  display: block;
-  padding-left: 1.75rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #0f172a;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
 }
 
 footer {

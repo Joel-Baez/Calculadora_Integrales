@@ -1,6 +1,8 @@
 const form = document.getElementById('integralForm');
-const integralInput = document.getElementById('integralInput');
+const mathfield = document.getElementById('mathfield');
+const hiddenInput = document.getElementById('integralInput');
 const variableInput = document.getElementById('variableInput');
+const variableDisplay = document.getElementById('variableDisplay');
 const statusMessage = document.getElementById('statusMessage');
 const analysisCard = document.getElementById('analysisCard');
 const methodSuggestion = document.getElementById('methodSuggestion');
@@ -14,142 +16,162 @@ const KEYBOARD_GROUPS = [
     id: 'general',
     label: 'General',
     keys: [
-      { label: '∫', value: '∫' },
-      { label: 'dx', value: 'dx' },
-      { label: '(', value: '(' },
-      { label: ')', value: ')' },
-      { label: '√', value: '√()' },
-      { label: '^', value: '^' },
-      { label: 'π', value: 'π' },
-      { label: 'e^x', value: 'exp()' },
-      { label: 'ln', value: 'ln()' },
-      { label: 'log', value: 'log()' }
+      { label: '7', latex: '7' },
+      { label: '8', latex: '8' },
+      { label: '9', latex: '9' },
+      { label: '4', latex: '4' },
+      { label: '5', latex: '5' },
+      { label: '6', latex: '6' },
+      { label: '1', latex: '1' },
+      { label: '2', latex: '2' },
+      { label: '3', latex: '3' },
+      { label: '0', latex: '0' },
+      { label: 'x', latex: 'x' },
+      { label: 'y', latex: 'y' },
+      { label: '(', latex: '(' },
+      { label: ')', latex: ')' },
+      { label: '| |', latex: '\\left|\\placeholder{}\\right|' },
+      { label: '√', latex: '\\sqrt{\\placeholder{}}' },
+      { label: 'xⁿ', latex: 'x^{\\placeholder{}}' },
+      { label: 'eˣ', latex: 'e^{\\placeholder{}}' },
+      { label: 'π', latex: '\\pi' },
+      { label: 'e', latex: 'e' }
     ]
   },
   {
     id: 'operadores',
     label: 'Operadores',
     keys: [
-      { label: '+', value: '+' },
-      { label: '−', value: '-' },
-      { label: '·', value: '*' },
-      { label: '÷', value: '/' },
-      { label: '1/', value: '1/' },
-      { label: 'xⁿ', value: '^' },
-      { label: '·10ⁿ', value: '*10^' }
+      { label: '+', latex: '+' },
+      { label: '−', latex: '-' },
+      { label: '·', latex: '\\cdot' },
+      { label: '÷', latex: '\\div' },
+      { label: '=', latex: '=' },
+      { label: '^', latex: '^{\\placeholder{}}' },
+      { label: '()', latex: '\\left(\\placeholder{}\\right)' },
+      { label: '[ ]', latex: '\\left[\\placeholder{}\\right]' }
     ]
   },
   {
     id: 'funciones',
     label: 'Funciones',
     keys: [
-      { label: 'sin', value: 'sin()' },
-      { label: 'cos', value: 'cos()' },
-      { label: 'tan', value: 'tan()' },
-      { label: 'sec', value: 'sec()' },
-      { label: 'csc', value: 'csc()' },
-      { label: 'cot', value: 'cot()' },
-      { label: 'sinh', value: 'sinh()' },
-      { label: 'cosh', value: 'cosh()' },
-      { label: 'tanh', value: 'tanh()' },
-      { label: 'asin', value: 'asin()' },
-      { label: 'acos', value: 'acos()' },
-      { label: 'atan', value: 'atan()' }
+      { label: 'exp', latex: '\\exp\\left(\\placeholder{}\\right)' },
+      { label: 'ln', latex: '\\ln\\left(\\placeholder{}\\right)' },
+      { label: 'log', latex: '\\log\\left(\\placeholder{}\\right)' },
+      { label: 'abs', latex: '\\left|\\placeholder{}\\right|' },
+      { label: '√()', latex: '\\sqrt{\\placeholder{}}' }
     ]
   },
   {
-    id: 'sustitucion',
-    label: 'Sustitución',
+    id: 'trigonometria',
+    label: 'Trigonometría',
     keys: [
-      { label: 'u', value: 'u' },
-      { label: 'du', value: 'du' },
-      { label: 'dx', value: 'dx' },
-      { label: 'g(x)', value: 'g(x)' },
-      { label: 'h(x)', value: 'h(x)' },
-      { label: 'f(g(x))', value: 'f(g(x))' }
-    ]
-  },
-  {
-    id: 'partes',
-    label: 'Por partes',
-    keys: [
-      { label: 'u', value: 'u' },
-      { label: 'du', value: 'du' },
-      { label: 'v', value: 'v' },
-      { label: 'dv', value: 'dv' },
-      { label: 'uv', value: 'u*v' },
-      { label: '∫v·du', value: '∫v*du' },
-      { label: '∫u·dv', value: '∫u*dv' }
-    ]
-  },
-  {
-    id: 'trig',
-    label: 'Sust. trig.',
-    keys: [
-      { label: 'sin', value: 'sin()' },
-      { label: 'cos', value: 'cos()' },
-      { label: 'tan', value: 'tan()' },
-      { label: 'sec', value: 'sec()' },
-      { label: 'csc', value: 'csc()' },
-      { label: 'cot', value: 'cot()' },
-      { label: 'asin', value: 'asin()' },
-      { label: 'acos', value: 'acos()' },
-      { label: 'atan', value: 'atan()' }
+      { label: 'sin', latex: '\\sin\\left(\\placeholder{}\\right)' },
+      { label: 'cos', latex: '\\cos\\left(\\placeholder{}\\right)' },
+      { label: 'tan', latex: '\\tan\\left(\\placeholder{}\\right)' },
+      { label: 'sec', latex: '\\sec\\left(\\placeholder{}\\right)' },
+      { label: 'csc', latex: '\\csc\\left(\\placeholder{}\\right)' },
+      { label: 'cot', latex: '\\cot\\left(\\placeholder{}\\right)' },
+      { label: 'asin', latex: '\\arcsin\\left(\\placeholder{}\\right)' },
+      { label: 'acos', latex: '\\arccos\\left(\\placeholder{}\\right)' },
+      { label: 'atan', latex: '\\arctan\\left(\\placeholder{}\\right)' },
+      { label: 'θ', latex: '\\theta' }
     ]
   },
   {
     id: 'fracciones',
-    label: 'Fracciones parciales',
+    label: 'Fracciones',
     keys: [
-      { label: '1/x', value: '1/x' },
-      { label: '1/(x+a)', value: '1/(x+a)' },
-      { label: '(ax+b)/(cx+d)', value: '(a*x+b)/(c*x+d)' },
-      { label: 'factor', value: '(x+a)*(x+b)' },
-      { label: 'A/x + B/(x+a)', value: 'A/x + B/(x+a)' },
-      { label: 'polinomio', value: 'x^2 + a*x + b' }
+      { label: 'a/b', latex: '\\frac{\\placeholder{}}{\\placeholder{}}' },
+      { label: '1/x', latex: '\\frac{1}{\\placeholder{}}' },
+      { label: '1/(x+a)', latex: '\\frac{1}{\\left(\\placeholder{}\\right)}' },
+      { label: '(ax+b)/(cx+d)', latex: '\\frac{\\placeholder{}}{\\placeholder{}}' }
+    ]
+  },
+  {
+    id: 'estrategias',
+    label: 'Estrategias',
+    keys: [
+      { label: 'u', latex: 'u' },
+      { label: 'du', latex: '\\,du' },
+      { label: 'v', latex: 'v' },
+      { label: 'dv', latex: '\\,dv' },
+      { label: 'dx', latex: '\\,dx' },
+      { label: 'dθ', latex: '\\,d\\theta' },
+      { label: 'u = g(x)', latex: 'u=\\placeholder{}' },
+      { label: "g'(x)", latex: "g'(\\placeholder{})" }
     ]
   }
 ];
 
 const METHOD_TO_GROUP = {
-  substitution: 'sustitucion',
-  parts: 'partes',
-  trig: 'trig',
-  partial_fractions: 'fracciones'
+  substitution: 'estrategias',
+  parts: 'estrategias',
+  trig: 'trigonometria',
+  partial_fractions: 'fracciones',
+  repeated_factors: 'fracciones'
 };
 
 let activeGroup = KEYBOARD_GROUPS[0].id;
 
 const setStatus = (message, variant = 'idle') => {
+  if (!statusMessage) return;
   statusMessage.textContent = message;
   statusMessage.className = `status ${variant}`;
 };
 
-const autoResize = (element) => {
-  if (!element) return;
-  element.style.height = 'auto';
-  element.style.height = `${element.scrollHeight}px`;
+const retypeset = () => {
+  if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
+    MathJax.typesetPromise();
+  }
 };
 
-autoResize(integralInput);
-integralInput.addEventListener('input', () => autoResize(integralInput));
+const sanitizeVariable = (value) => {
+  const letters = (value || '').replace(/[^a-zA-Z]/g, '');
+  return letters || 'x';
+};
 
-const insertAtCursor = (field, value) => {
-  const start = field.selectionStart;
-  const end = field.selectionEnd;
-  const original = field.value;
-  let newValue = value;
-  let newPosition = start + value.length;
+const updateVariableDisplay = () => {
+  const sanitized = sanitizeVariable(variableInput.value);
+  variableDisplay.textContent = sanitized;
+};
 
-  if (value === '()' || value.endsWith('()')) {
-    newValue = value === '()' ? '()' : value;
-    newPosition = start + newValue.length - 1;
+const getLatexValue = () => {
+  if (mathfield && typeof mathfield.getValue === 'function') {
+    return mathfield.getValue('latex-expanded') || '';
   }
+  return hiddenInput.value || '';
+};
 
-  field.value = `${original.slice(0, start)}${newValue}${original.slice(end)}`;
-  field.focus();
-  field.setSelectionRange(newPosition, newPosition);
-  autoResize(field);
+const getAsciiValue = () => {
+  if (mathfield && typeof mathfield.getValue === 'function') {
+    return mathfield.getValue('ASCIIMath') || '';
+  }
+  return hiddenInput.value || '';
+};
+
+const updateHiddenValue = () => {
+  if (!hiddenInput) return;
+  hiddenInput.value = getAsciiValue();
+};
+
+if (mathfield) {
+  mathfield.addEventListener('input', () => {
+    updateHiddenValue();
+    setStatus('Expresión actualizada. Pulsa «Sugerir método».', 'idle');
+  });
+}
+
+const insertLatex = (latex) => {
+  if (!mathfield || !latex) return;
+  mathfield.focus();
+  if (typeof mathfield.insert === 'function') {
+    mathfield.insert(latex);
+  } else if (typeof mathfield.executeCommand === 'function') {
+    mathfield.executeCommand('insert', latex);
+  }
+  updateHiddenValue();
 };
 
 const renderKeyboardTabs = () => {
@@ -162,9 +184,11 @@ const renderKeyboardTabs = () => {
 
 const renderKeyboardKeys = () => {
   const group = KEYBOARD_GROUPS.find(({ id }) => id === activeGroup) ?? KEYBOARD_GROUPS[0];
-  keyboardGrid.innerHTML = group.keys.map(({ label, value }) => `
-    <button type="button" class="key" data-value="${value}">${label}</button>
-  `).join('');
+  keyboardGrid.innerHTML = group.keys
+    .map(({ label, latex }) => `
+      <button type="button" class="key" data-latex="${latex}">${label}</button>
+    `)
+    .join('');
 };
 
 const refreshKeyboard = () => {
@@ -188,38 +212,34 @@ keyboardGrid.addEventListener('click', (event) => {
   if (!(event.target instanceof HTMLButtonElement)) {
     return;
   }
-  const { value } = event.target.dataset;
-  if (!value) {
+  const { latex } = event.target.dataset;
+  if (!latex) {
     return;
   }
-  insertAtCursor(integralInput, value);
+  insertLatex(latex);
 });
 
 refreshKeyboard();
 
-document.addEventListener('keydown', (event) => {
-  if (event.key === 'Tab' && document.activeElement === integralInput) {
-    event.preventDefault();
-    insertAtCursor(integralInput, '    ');
-  }
-});
-
 examplePills.forEach((pill) => {
   pill.addEventListener('click', () => {
-    const { example } = pill.dataset;
-    if (!example) return;
-    integralInput.value = example;
-    autoResize(integralInput);
-    integralInput.focus();
+    const latex = pill.dataset.latex;
+    if (!latex) return;
+    if (mathfield && typeof mathfield.setValue === 'function') {
+      mathfield.setValue(latex);
+    }
+    updateHiddenValue();
+    setStatus('Ejemplo cargado. Ajusta la expresión si lo necesitas.', 'idle');
+    retypeset();
   });
 });
 
 const renderAnalysis = (analysis) => {
   const {
-    sanitized_expression: sanitized,
-    variable,
+    latex_integral: latexIntegral = '',
+    variable = 'x',
     detected_features: features = [],
-    warnings = [],
+    warnings = []
   } = analysis;
 
   const featureList = features.length
@@ -232,8 +252,10 @@ const renderAnalysis = (analysis) => {
 
   analysisCard.innerHTML = `
     <h3>Análisis del integrando</h3>
-    <p><strong>Variable principal:</strong> ${variable}</p>
-    <p><strong>Interpretación simbólica:</strong> $$${sanitized || '0'}$$</p>
+    <p class="integral-display">$$${latexIntegral || ''}$$</p>
+    <div class="analysis-details">
+      <div><span class="detail-label">Variable principal</span><span class="detail-value">${variable}</span></div>
+    </div>
     ${featureList}
     ${warningsList}
   `;
@@ -252,7 +274,16 @@ const renderMethod = (method) => {
     return;
   }
 
-  const { title, badge, summary, example_integral: exampleIntegral, example_solution: exampleSolution, steps = [], setup = [], key } = method;
+  const {
+    title,
+    badge,
+    summary,
+    example_integral: exampleIntegral,
+    example_solution: exampleSolution,
+    steps = [],
+    setup = [],
+    key
+  } = method;
 
   const stepsList = steps.length
     ? `<ol class="step-list">${steps.map((step) => `<li>${step}</li>`).join('')}</ol>`
@@ -313,25 +344,23 @@ const requestAnalysis = async (payload) => {
   return response.json();
 };
 
-const retypeset = () => {
-  if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
-    MathJax.typesetPromise();
-  }
-};
+updateVariableDisplay();
+updateHiddenValue();
+
+variableInput.addEventListener('input', () => {
+  const sanitized = sanitizeVariable(variableInput.value);
+  variableInput.value = sanitized;
+  updateVariableDisplay();
+});
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
 
-  const expression = integralInput.value.trim();
-  const variable = variableInput.value.trim() || 'x';
+  const latexExpression = getLatexValue().trim();
+  const variable = sanitizeVariable(variableInput.value);
 
-  if (!expression) {
-    setStatus('Por favor escribe un integrando antes de analizar.', 'error');
-    return;
-  }
-
-  if (!/^[a-zA-Z]+$/.test(variable)) {
-    setStatus('La variable principal debe escribirse únicamente con letras.', 'error');
+  if (!latexExpression || latexExpression === '\\placeholder{}' || latexExpression.includes('\\placeholder')) {
+    setStatus('Por favor completa el integrando en el editor antes de analizar.', 'error');
     return;
   }
 
@@ -339,7 +368,7 @@ form.addEventListener('submit', async (event) => {
 
   try {
     const payload = {
-      expression,
+      expression: latexExpression,
       variable
     };
 

@@ -4,8 +4,10 @@ from typing import Dict, List
 from flask import Flask, jsonify, request, send_from_directory
 from sympy import (
     E,
+    Integral,
     Symbol,
     acos,
+    apart,
     asin,
     atan,
     cos,
@@ -14,10 +16,14 @@ from sympy import (
     csc,
     diff,
     exp,
+    factor,
+    fraction,
+    integrate,
     latex,
     log,
     pi,
     sec,
+    simplify,
     sin,
     sinh,
     sqrt,
@@ -71,17 +77,6 @@ METHOD_DETAILS: Dict[str, Dict[str, object]] = {
             'Una función compuesta $f(g(x))$ cuya derivada $g\'(x)$ aparece multiplicando '
             'permite introducir $u = g(x)$ para integrar en una sola variable auxiliar.'
         ),
-        'example_integral': r'\int (3x^2 + 1)\cos(x^3 + x)\,dx',
-        'example_solution': r'\sin(x^3 + x) + C',
-        'setup': [
-            {'label': '$u$', 'value': 'x^3 + x'},
-            {'label': '$du$', 'value': '(3x^2 + 1)\\,dx'},
-        ],
-        'steps': [
-            r'Identifica $u = x^3 + x$ porque su diferencial $du = (3x^2 + 1)\,dx$ aparece completo.',
-            r'Reemplaza el integrando por $\int \cos(u)\,du$ y calcula la antiderivada $\sin(u) + C$.',
-            r'Retorna a la variable original sustituyendo $u$ por $x^3 + x$.'
-        ],
     },
     'parts': {
         'title': 'Integración por partes',
@@ -90,39 +85,14 @@ METHOD_DETAILS: Dict[str, Dict[str, object]] = {
             'Cuando el integrando es un producto, conviene derivar la parte que se simplifica '
             'y antiderivar la que mantiene una forma manejable.'
         ),
-        'example_integral': r'\int x e^x\,dx',
-        'example_solution': r'x e^x - e^x + C',
-        'setup': [
-            {'label': '$u$', 'value': 'x'},
-            {'label': '$du$', 'value': 'dx'},
-            {'label': '$dv$', 'value': 'e^x\\,dx'},
-            {'label': '$v$', 'value': 'e^x'},
-        ],
-        'steps': [
-            r'Aplica $\int u\,dv = uv - \int v\,du$ con las elecciones indicadas.',
-            r'Calcula $uv = x e^x$ y $\int v\,du = \int e^x\,dx = e^x$.',
-            r'Resta ambos términos para obtener $x e^x - e^x + C$.'
-        ],
     },
     'trig': {
         'title': 'Sustitución trigonométrica',
-        'badge': '$\\theta$-sustitución',
+        'badge': '$\theta$-sustitución',
         'summary': (
-            'Las raíces de la forma $\\sqrt{a^2 - x^2}$, $\\sqrt{a^2 + x^2}$ o '
-            '$\\sqrt{x^2 - a^2}$ sugieren introducir un ángulo $\\theta$ para aprovechar identidades trigonométricas.'
+            'Las raíces de la forma $\sqrt{a^2 - x^2}$, $\sqrt{a^2 + x^2}$ o '
+            '$\sqrt{x^2 - a^2}$ sugieren introducir un ángulo $\theta$ para aprovechar identidades trigonométricas.'
         ),
-        'example_integral': r'\int \frac{dx}{\sqrt{1 - x^2}}',
-        'example_solution': r'\arcsin(x) + C',
-        'setup': [
-            {'label': '$x$', 'value': '\\sin\\theta'},
-            {'label': '$dx$', 'value': '\\cos\\theta\\,d\\theta'},
-            {'label': '$\\theta$', 'value': '\\arcsin(x)'},
-        ],
-        'steps': [
-            r'Sustituye $x = \sin\\theta$ para transformar la raíz en $\\sqrt{1 - \sin^2\\theta} = \cos\\theta$.',
-            r'Reemplaza $dx$ por $\cos\\theta\,d\\theta$ y simplifica la integral a $\int d\\theta$.',
-            r'Integra para obtener $\\theta + C$ y regresa a términos de $x$ mediante $\\theta = \arcsin(x)$.'
-        ],
     },
     'partial_fractions': {
         'title': 'Fracciones parciales',
@@ -131,19 +101,14 @@ METHOD_DETAILS: Dict[str, Dict[str, object]] = {
             'Un cociente de polinomios factorizable se puede expresar como suma de fracciones '
             'más simples cuya integración es directa.'
         ),
-        'example_integral': r'\int \frac{2x + 3}{x^2 + 3x}\,dx',
-        'example_solution': r'\ln|x| + \ln|x + 3| + C',
-        'setup': [
-            {
-                'label': 'Descomposición',
-                'value': r'\frac{2x + 3}{x(x + 3)} = \frac{1}{x} + \frac{1}{x + 3}'
-            }
-        ],
-        'steps': [
-            r'Factoriza el denominador $x^2 + 3x = x(x + 3)$.',
-            r'Descompón en fracciones parciales y obtén coeficientes unitarios.',
-            r'Integra cada término para llegar a $\ln|x| + \ln|x + 3| + C$.'
-        ],
+    },
+    'repeated_factors': {
+        'title': 'Fracciones parciales con factores repetidos',
+        'badge': 'potencias lineales',
+        'summary': (
+            'Cuando el denominador tiene factores lineales elevados a una potencia, cada potencia requiere '
+            'un término separado en la descomposición para integrar sin complicaciones.'
+        ),
     },
     'default': {
         'title': 'Exploración general',
@@ -152,15 +117,243 @@ METHOD_DETAILS: Dict[str, Dict[str, object]] = {
             'No se detectó un patrón dominante. Simplifica el integrando, separa en sumas '
             'o intenta sustituciones básicas para avanzar.'
         ),
-        'example_integral': r'\int (x^2 + 1)\,dx',
-        'example_solution': r'\tfrac{x^3}{3} + x + C',
-        'steps': [
-            r'Divide la integral en términos elementales y aplica reglas de potencia.',
-            r'Comprueba si una sustitución sencilla reduce aún más la expresión.'
-        ],
     },
 }
 
+
+def make_integral_latex(expr, variable: Symbol) -> str:
+    return rf"\int {latex(expr)}\\,d{latex(variable)}"
+
+
+def format_antiderivative(expr, variable: Symbol) -> str:
+    constant = Symbol('C')
+    if isinstance(expr, Integral):
+        return latex(expr)
+    return latex(expr + constant)
+
+
+def describe_trig_substitution(inner_poly, var: Symbol):
+    coeffs = inner_poly.all_coeffs()
+    if len(coeffs) != 3:
+        return None
+    a2, b, c = coeffs
+    if b != 0:
+        return None
+    a2 = simplify(a2)
+    c = simplify(c)
+    if a2.is_zero:
+        return None
+    pattern = None
+    if a2.is_negative and c.is_positive:
+        pattern = 'sqrt(a^2 - (bx)^2)'
+    elif a2.is_positive and c.is_positive:
+        pattern = 'sqrt(a^2 + (bx)^2)'
+    elif a2.is_positive and c.is_negative:
+        pattern = 'sqrt((bx)^2 - a^2)'
+    if pattern is None:
+        return None
+    return {
+        'pattern': pattern,
+        'a': simplify(abs(c) ** 0.5),
+        'b': simplify(abs(a2) ** 0.5),
+    }
+
+
+def generate_substitution_example(expr, var: Symbol):
+    composites = [
+        f for f in expr.atoms(exp, log, sin, cos, tan, cot, sec, csc, sinh, cosh, tanh, sqrt)
+        if f.has(var)
+    ]
+    if composites:
+        outer = composites[0].func
+        inner = composites[0].args[0]
+    else:
+        inner = var**3 + var
+        outer = sin
+    derived = diff(inner, var)
+    shifted_inner = simplify(inner + 1)
+    example_integrand = simplify(derived * outer(shifted_inner))
+    antiderivative = integrate(example_integrand, var)
+    u_symbol = Symbol('u')
+    setup = [
+        {'label': '$u$', 'value': latex(shifted_inner)},
+        {'label': '$du$', 'value': latex(derived) + rf"\\,d{latex(var)}"},
+    ]
+    steps = [
+        rf"Reconoce la composición ${latex(outer(shifted_inner))}$ y que su derivada interna es ${latex(derived)}$.",
+        rf"Plantea $u = {latex(shifted_inner)}$ para obtener $du = {latex(derived)}\\,d{latex(var)}$.",
+        rf"Reescribe la integral como $\int {latex(outer(u_symbol))}\\,du$ e intégrala.",
+        "Sustituye nuevamente $u$ por la expresión original para volver a la variable principal.",
+    ]
+    return {
+        'example_integral': make_integral_latex(example_integrand, var),
+        'example_solution': format_antiderivative(antiderivative, var),
+        'setup': setup,
+        'steps': steps,
+    }
+
+
+def split_product(expr, var: Symbol):
+    factors = list(expr.as_ordered_factors()) if expr.is_Mul else [expr]
+    polynomial = None
+    other = None
+    for factor_candidate in factors:
+        poly = factor_candidate.as_poly(var)
+        if poly is not None:
+            polynomial = factor_candidate
+            break
+    if polynomial is None:
+        polynomial = var
+        other = expr / var
+    else:
+        remaining = simplify(expr / polynomial)
+        other = remaining
+    return polynomial, other
+
+
+def generate_parts_example(expr, var: Symbol):
+    poly, other = split_product(expr, var)
+    poly_example = simplify(poly + 1)
+    example_integrand = simplify(poly_example * other)
+    du = diff(poly_example, var)
+    try:
+        v = integrate(other, var)
+    except Exception:  # pragma: no cover
+        v = Integral(other, var)
+    antiderivative = integrate(example_integrand, var)
+    setup = [
+        {'label': '$u$', 'value': latex(poly_example)},
+        {'label': '$du$', 'value': latex(du) + rf"\\,d{latex(var)}"},
+        {'label': '$dv$', 'value': latex(other) + rf"\\,d{latex(var)}"},
+        {'label': '$v$', 'value': latex(v)},
+    ]
+    steps = [
+        rf"Elige $u = {latex(poly_example)}$ porque su derivada $du = {latex(du)}\\,d{latex(var)}$ simplifica el producto.",
+        rf"Antideriva $dv = {latex(other)}\\,d{latex(var)}$ para obtener $v = {latex(v)}$.",
+        "Aplica la fórmula $\\int u\\,dv = uv - \\int v\\,du$ y simplifica el resultado.",
+    ]
+    return {
+        'example_integral': make_integral_latex(example_integrand, var),
+        'example_solution': format_antiderivative(antiderivative, var),
+        'setup': setup,
+        'steps': steps,
+    }
+
+
+def generate_trig_example(expr, var: Symbol):
+    radicands = [term.args[0] for term in expr.atoms(sqrt) if term.has(var)]
+    inner = radicands[0] if radicands else var**2 + 1
+    poly = inner.as_poly(var)
+    if poly is None:
+        poly = (var**2 + 1).as_poly(var)
+    description = describe_trig_substitution(poly, var)
+    a = description['a'] if description else 1
+    b = description['b'] if description else 1
+    pattern = description['pattern'] if description else 'sqrt(a^2 + (bx)^2)'
+    if pattern == 'sqrt(a^2 - (bx)^2)':
+        example_integrand = 1 / sqrt(a**2 - (b * var)**2)
+        substitution = rf"{latex(var)} = {latex(a / b)}\\sin\\theta"
+        differential = rf"d{latex(var)} = {latex(a)}\\cos\\theta\\,d\\theta"
+        inverse = latex(asin(var * b / a))
+    elif pattern == 'sqrt((bx)^2 - a^2)':
+        example_integrand = sqrt((b * var)**2 - a**2) / var
+        substitution = rf"{latex(var)} = {latex(a / b)}\\sec\\theta"
+        differential = rf"d{latex(var)} = {latex(a / b)}\\sec\\theta\\tan\\theta\\,d\\theta"
+        inverse = latex(acos(a / (b * var)))
+    else:
+        example_integrand = 1 / sqrt(a**2 + (b * var)**2)
+        substitution = rf"{latex(var)} = {latex(a / b)}\\tan\\theta"
+        differential = rf"d{latex(var)} = {latex(a / b)}\\sec^2\\theta\\,d\\theta"
+        inverse = latex(atan(var * b / a))
+    antiderivative = integrate(example_integrand, var)
+    setup = [
+        {'label': '$x$', 'value': substitution},
+        {'label': '$dx$', 'value': differential},
+        {'label': '$\\theta$', 'value': inverse},
+    ]
+    steps = [
+        "Identifica la raíz cuadrática y elige una sustitución trigonométrica acorde al patrón $a^2 \\pm x^2$.",
+        "Expresa $dx$ y la raíz en términos de $\\theta$ para obtener una integral elemental.",
+        "Integra respecto de $\\theta$ y usa la sustitución inversa para regresar a $x$.",
+    ]
+    return {
+        'example_integral': make_integral_latex(example_integrand, var),
+        'example_solution': format_antiderivative(antiderivative, var),
+        'setup': setup,
+        'steps': steps,
+    }
+
+
+def generate_partial_fractions_example(expr, var: Symbol):
+    numerator, denominator = fraction(expr)
+    denominator = simplify(denominator)
+    numerator = simplify(numerator + 1)
+    example_integrand = simplify(numerator / denominator)
+    decomposition = apart(example_integrand, var, full=True)
+    antiderivative = integrate(example_integrand, var)
+    setup = [
+        {'label': 'Descomposición', 'value': latex(decomposition)},
+    ]
+    steps = [
+        rf"Factoriza el denominador ${latex(factor(denominator))}$ para identificar términos simples.",
+        rf"Expresa la fracción como ${latex(decomposition)}$ y determina los coeficientes parciales.",
+        "Integra cada término independiente y suma las antiderivadas obtenidas.",
+    ]
+    return {
+        'example_integral': make_integral_latex(example_integrand, var),
+        'example_solution': format_antiderivative(antiderivative, var),
+        'setup': setup,
+        'steps': steps,
+    }
+
+
+def generate_repeated_factors_example(expr, var: Symbol):
+    _, denominator = fraction(expr)
+    factors = factor(denominator)
+    factor_terms = factors.as_ordered_factors() if factors != 0 else []
+    dominant = factor_terms[0] if factor_terms else (var - 1) ** 2
+    example_integrand = 1 / dominant
+    antiderivative = integrate(example_integrand, var)
+    decomposition = apart(example_integrand, var, full=True)
+    setup = [
+        {'label': 'Factor dominante', 'value': latex(dominant)},
+        {'label': 'Descomposición', 'value': latex(decomposition)},
+    ]
+    steps = [
+        "Escribe un término de fracción parcial para cada potencia del factor repetido.",
+        "Determina las constantes comparando coeficientes o evaluando la identidad resultante.",
+        "Integra cada término obteniendo potencias y logaritmos según corresponda.",
+    ]
+    return {
+        'example_integral': make_integral_latex(example_integrand, var),
+        'example_solution': format_antiderivative(antiderivative, var),
+        'setup': setup,
+        'steps': steps,
+    }
+
+
+def generate_default_example(var: Symbol):
+    example_integrand = var**2 + 2 * var + 3
+    antiderivative = integrate(example_integrand, var)
+    steps = [
+        "Divide la integral en sumas de potencias simples.",
+        "Aplica la regla de la potencia y suma las antiderivadas.",
+    ]
+    return {
+        'example_integral': make_integral_latex(example_integrand, var),
+        'example_solution': format_antiderivative(antiderivative, var),
+        'setup': [],
+        'steps': steps,
+    }
+
+
+EXAMPLE_GENERATORS = {
+    'substitution': generate_substitution_example,
+    'parts': generate_parts_example,
+    'trig': generate_trig_example,
+    'partial_fractions': generate_partial_fractions_example,
+    'repeated_factors': generate_repeated_factors_example,
+}
 
 def sanitize_expression(expression: str, variable: str) -> str:
     expr = expression or ''
@@ -171,6 +364,23 @@ def sanitize_expression(expression: str, variable: str) -> str:
         ('^', '**', False),
         ('√', 'sqrt', False),
         ('π', 'pi', False),
+        ('\\pi', 'pi', False),
+        ('\\sqrt', 'sqrt', False),
+        ('\\sin', 'sin', False),
+        ('\\cos', 'cos', False),
+        ('\\tan', 'tan', False),
+        ('\\sec', 'sec', False),
+        ('\\csc', 'csc', False),
+        ('\\cot', 'cot', False),
+        ('\\sinh', 'sinh', False),
+        ('\\cosh', 'cosh', False),
+        ('\\tanh', 'tanh', False),
+        ('\\arcsin', 'asin', False),
+        ('\\arccos', 'acos', False),
+        ('\\arctan', 'atan', False),
+        ('\\exp', 'exp', False),
+        ('\\ln', 'log', False),
+        ('\\log', 'log', False),
         ('sen', 'sin', True),
         ('tg', 'tan', True),
         ('ctg', 'cot', True),
@@ -182,8 +392,14 @@ def sanitize_expression(expression: str, variable: str) -> str:
         else:
             expr = expr.replace(pattern, replacement)
     expr = re.sub(r'\\int', '', expr, flags=re.IGNORECASE)
+    expr = expr.replace('\\cdot', '*').replace('\\times', '*')
     expr = expr.replace('\\,', '').replace('\\!', '')
     expr = re.sub(r'\\left|\\right', '', expr)
+    def _replace_frac(match):
+        numerator, denominator = match.group(1), match.group(2)
+        return f'(({numerator}))/(({denominator}))'
+
+    expr = re.sub(r'\\frac\{([^{}]+)\}\{([^{}]+)\}', _replace_frac, expr)
     expr = expr.replace('{', '(').replace('}', ')')
     expr = re.sub(r'\s+', '', expr)
     return expr
@@ -212,6 +428,12 @@ def describe_features(expr, var: Symbol) -> List[str]:
         features.append('Polinomio en la variable principal.')
     if expr.is_rational_function(var) and not expr.is_polynomial(var):
         features.append('Cociente de polinomios: candidato a fracciones parciales.')
+        _, denominator = fraction(expr)
+        poly = denominator.as_poly(var)
+        if poly is not None:
+            factors = poly.factor_list()[1]
+            if any(multiplicity > 1 for _, multiplicity in factors):
+                features.append('Se detectaron factores repetidos en el denominador.')
     if expr.has(log):
         features.append('Aparecen logaritmos naturales en el integrando.')
     if expr.has(exp):
@@ -227,12 +449,19 @@ def describe_features(expr, var: Symbol) -> List[str]:
 
 def detect_method(expr, var: Symbol) -> str:
     if expr.is_rational_function(var) and not expr.is_polynomial(var):
+        _, denominator = fraction(expr)
+        poly = denominator.as_poly(var)
+        if poly is not None:
+            factors = poly.factor_list()[1]
+            if any(multiplicity > 1 for _, multiplicity in factors):
+                return 'repeated_factors'
         return 'partial_fractions'
 
     if expr.has(sqrt):
         for radicand in expr.atoms(sqrt):
             inner = radicand.args[0]
-            if inner.is_polynomial(var) and inner.as_poly(var).degree() == 2:
+            poly = inner.as_poly(var)
+            if poly is not None and poly.degree() == 2 and describe_trig_substitution(poly, var):
                 return 'trig'
 
     if expr.is_Mul:
@@ -253,10 +482,6 @@ def detect_method(expr, var: Symbol) -> str:
             return 'substitution'
 
     return 'substitution' if expr.has(exp, log, sin, cos, tan, cot, sec, csc, sinh, cosh, tanh) else 'default'
-
-
-def integral_to_latex(expr) -> str:
-    return latex(expr)
 
 
 @app.route('/')
@@ -294,15 +519,22 @@ def analyze():
         )
 
     analysis = {
-        'sanitized_expression': integral_to_latex(expr),
+        'latex_integral': make_integral_latex(expr, var_symbol),
         'variable': variable_name,
         'detected_features': features,
         'warnings': warnings,
         'method_key': method_key,
     }
 
+    generator = EXAMPLE_GENERATORS.get(method_key)
+    try:
+        example_payload = generator(expr, var_symbol) if generator else generate_default_example(var_symbol)
+    except Exception:  # pragma: no cover
+        example_payload = generate_default_example(var_symbol)
+
     method_payload = dict(method)
     method_payload['key'] = method_key
+    method_payload.update(example_payload)
 
     response = {
         'status': 'ok',
