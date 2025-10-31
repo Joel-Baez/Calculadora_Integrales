@@ -1,7 +1,7 @@
 const form = document.getElementById('integralForm');
 const mathfieldHost = document.getElementById('mathField');
+const mathInput = document.getElementById('mathInput');
 const latexPreview = document.getElementById('latexPreview');
-const hiddenInput = document.getElementById('integralInput');
 const variableInput = document.getElementById('variableInput');
 const variableDisplay = document.getElementById('variableDisplay');
 const statusMessage = document.getElementById('statusMessage');
@@ -12,7 +12,7 @@ const keyboardTabs = document.getElementById('keyboardTabs');
 const keyboardGrid = document.getElementById('keyboardGrid');
 const examplePills = document.querySelectorAll('.pill');
 
-let mathField = null;
+const PLACEHOLDER_TOKEN = '\\placeholder{}';
 
 const KEYBOARD_GROUPS = [
   {
@@ -142,26 +142,16 @@ const updateVariableDisplay = () => {
   updatePreview();
 };
 
-const getLatexValue = () => {
-  if (mathField) {
-    return mathField.getValue('latex-expanded') || '';
-  }
-  return hiddenInput?.value || '';
-};
+const getLatexValue = () => (mathInput ? mathInput.value : '');
 
 const setLatexValue = (value) => {
-  if (mathField) {
-    mathField.setValue(value, { format: 'latex' });
-  } else if (hiddenInput) {
-    hiddenInput.value = value;
+  if (!mathInput) {
+    setStatus('No se pudo actualizar el integrando porque el editor no está disponible.', 'error');
+    return;
   }
+  mathInput.value = value || '';
   handleLatexInput();
-};
-
-const updateHiddenValue = () => {
-  if (hiddenInput) {
-    hiddenInput.value = getLatexValue();
-  }
+  mathInput.focus();
 };
 
 const updatePreview = () => {
@@ -180,7 +170,6 @@ const updatePreview = () => {
 
 const handleLatexInput = () => {
   mathfieldHost?.classList.remove('invalid');
-  updateHiddenValue();
   updatePreview();
   if (getLatexValue()) {
     setStatus('Expresión actualizada. Pulsa «Sugerir método».', 'idle');
@@ -189,49 +178,70 @@ const handleLatexInput = () => {
   }
 };
 
-const insertLatex = (snippet) => {
-  if (mathField) {
-    mathField.focus();
-    mathField.insert(snippet);
-    handleLatexInput();
-    return;
+const transformSnippet = (snippet) => {
+  if (!snippet) {
+    return { text: '', caretOffset: null };
   }
-  setStatus('No se pudo insertar el símbolo porque el editor no está disponible.', 'error');
+
+  let caretOffset = null;
+  let result = '';
+  let remaining = snippet;
+
+  while (remaining.length) {
+    const index = remaining.indexOf(PLACEHOLDER_TOKEN);
+    if (index === -1) {
+      result += remaining;
+      break;
+    }
+
+    const before = remaining.slice(0, index);
+    result += before;
+
+    if (caretOffset === null) {
+      caretOffset = result.length;
+    }
+
+    remaining = remaining.slice(index + PLACEHOLDER_TOKEN.length);
+  }
+
+  return { text: result, caretOffset };
 };
 
-const initializeMathField = () => {
-  if (!mathfieldHost) {
+const insertLatex = (rawSnippet) => {
+  if (!mathInput) {
+    setStatus('No se pudo insertar el símbolo porque el editor no está disponible.', 'error');
+    return;
+  }
+
+  const { text: snippet, caretOffset } = transformSnippet(rawSnippet);
+  const { selectionStart = mathInput.value.length, selectionEnd = mathInput.value.length } = mathInput;
+  const baseValue = mathInput.value;
+  const prefix = baseValue.slice(0, selectionStart);
+  const suffix = baseValue.slice(selectionEnd);
+  mathInput.value = `${prefix}${snippet}${suffix}`;
+
+  const insertionPoint = selectionStart + (caretOffset ?? snippet.length);
+  requestAnimationFrame(() => {
+    mathInput.focus();
+    mathInput.setSelectionRange(insertionPoint, insertionPoint);
+  });
+
+  handleLatexInput();
+};
+
+const initializeLatexEditor = () => {
+  if (!mathInput) {
     setStatus('No se encontró el editor de integrales en la página.', 'error');
     return;
   }
 
-  if (!window.MathLive || typeof window.MathLive.MathfieldElement !== 'function') {
-    setStatus('No se pudo cargar el editor matemático. Verifica tu conexión e intenta de nuevo.', 'error');
-    return;
-  }
+  const placeholder = mathInput.dataset.placeholder || '';
+  mathInput.placeholder = placeholder;
+  mathInput.value = '';
 
-  const placeholder = mathfieldHost.dataset.placeholder || '';
-  const ariaLabel = mathfieldHost.getAttribute('aria-label') || 'Editor de integrales';
-
-  mathField = new window.MathLive.MathfieldElement();
-  mathField.classList.add('mathlive-control');
-  mathField.setOptions({
-    smartMode: true,
-    smartFence: true,
-    virtualKeyboardMode: 'manual',
-    virtualKeyboardTheme: 'material',
-    readOnly: false,
-  });
-  mathField.placeholder = placeholder;
-  mathField.value = '';
-  mathField.setAttribute('aria-label', ariaLabel);
-
-  mathField.addEventListener('input', handleLatexInput);
-  mathField.addEventListener('focusin', () => mathfieldHost.classList.remove('invalid'));
-  mathfieldHost.addEventListener('focusin', () => mathfieldHost.classList.remove('invalid'));
-
-  mathfieldHost.innerHTML = '';
-  mathfieldHost.appendChild(mathField);
+  mathInput.addEventListener('input', handleLatexInput);
+  mathInput.addEventListener('focus', () => mathfieldHost?.classList.remove('invalid'));
+  mathInput.addEventListener('blur', () => mathfieldHost?.classList.remove('invalid'));
 
   handleLatexInput();
 };
@@ -281,7 +291,7 @@ keyboardGrid.addEventListener('click', (event) => {
   insertLatex(latex);
 });
 
-initializeMathField();
+initializeLatexEditor();
 
 refreshKeyboard();
 
@@ -289,10 +299,7 @@ examplePills.forEach((pill) => {
   pill.addEventListener('click', () => {
     const latex = pill.dataset.latex;
     if (!latex) return;
-    if (mathField) {
-      setLatexValue(latex);
-      mathField.focus();
-    }
+    setLatexValue(latex);
     setStatus('Ejemplo cargado. Ajusta la expresión si lo necesitas.', 'idle');
   });
 });
@@ -427,7 +434,6 @@ const requestAnalysis = async (payload) => {
 };
 
 updateVariableDisplay();
-updateHiddenValue();
 updatePreview();
 
 variableInput.addEventListener('input', updateVariableDisplay);
