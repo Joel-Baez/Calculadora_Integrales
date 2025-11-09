@@ -6,6 +6,8 @@ from sympy import (
     E,
     Integral,
     Symbol,
+    Pow,
+    Wild,
     acos,
     apart,
     asin,
@@ -13,9 +15,11 @@ from sympy import (
     cos,
     cosh,
     cot,
+    Eq,
     csc,
     diff,
     exp,
+    expand,
     factor,
     fraction,
     integrate,
@@ -26,12 +30,12 @@ from sympy import (
     simplify,
     sin,
     sinh,
+    Poly,
+    solve,
     sqrt,
     symbols,
     tan,
     tanh,
-    Wild,
-    Pow,
 )
 from sympy.core.function import AppliedUndef
 from sympy.core.sympify import SympifyError
@@ -128,10 +132,10 @@ def make_integral_latex(expr, variable: Symbol) -> str:
 
 
 def format_antiderivative(expr, variable: Symbol) -> str:
-    constant = Symbol('C')
+    constant_suffix = ' + c'
     if isinstance(expr, Integral):
-        return latex(expr)
-    return latex(expr + constant)
+        return latex(expr) + constant_suffix
+    return f"{latex(expr)}{constant_suffix}"
 
 
 def build_step(title: str, description: str, equations: List[str] | None = None) -> Dict[str, object]:
@@ -164,6 +168,60 @@ def describe_trig_substitution(inner_expr, var: Symbol):
 
 
 def generate_substitution_example(expr, var: Symbol):
+    if expr.is_rational_function(var) and not expr.is_polynomial(var):
+        _, denominator = fraction(expr)
+        inner = simplify(denominator)
+        derived = simplify(diff(inner, var))
+        if derived != 0:
+            shifted_inner = simplify(inner + 1)
+            example_integrand = simplify(derived / shifted_inner)
+            antiderivative = integrate(example_integrand, var)
+            u_symbol = Symbol('u')
+            reduced_integrand = 1 / u_symbol
+            reduced_antiderivative = integrate(reduced_integrand, u_symbol)
+            setup = [
+                {'label': 'u', 'value': latex(shifted_inner)},
+                {'label': 'du', 'value': latex(derived) + rf"\\,d{latex(var)}"},
+                {'label': 'Integral en u', 'value': rf"\int {latex(reduced_integrand)}\\,du"},
+            ]
+            steps = [
+                build_step(
+                    '1) Observamos el denominador',
+                    (
+                        'El denominador compuesto '
+                        f"${latex(shifted_inner)}$ aparece junto con su derivada ${latex(derived)}$, "
+                        'lo que sugiere una sustitución directa.'
+                    ),
+                    [make_integral_latex(example_integrand, var)],
+                ),
+                build_step(
+                    '2) Realizamos la sustitución',
+                    'Declaramos la variable auxiliar para simplificar el cociente.',
+                    [
+                        rf"u = {latex(shifted_inner)}",
+                        rf"du = {latex(derived)}\\,d{latex(var)}",
+                    ],
+                ),
+                build_step(
+                    '3) Integramos en términos de $u$',
+                    'La integral resultante es elemental y conduce a un logaritmo.',
+                    [
+                        rf"\int {latex(reduced_integrand)}\\,du = {format_antiderivative(reduced_antiderivative, u_symbol)}",
+                    ],
+                ),
+                build_step(
+                    '4) Sustituimos de vuelta',
+                    'Reemplazamos $u$ por la expresión original para obtener la antiderivada.',
+                    [format_antiderivative(antiderivative, var)],
+                ),
+            ]
+            return {
+                'example_integral': make_integral_latex(example_integrand, var),
+                'example_solution': format_antiderivative(antiderivative, var),
+                'setup': setup,
+                'steps': steps,
+            }
+
     composites = [
         f for f in expr.atoms(exp, log, sin, cos, tan, cot, sec, csc, sinh, cosh, tanh, sqrt)
         if f.has(var)
@@ -203,13 +261,15 @@ def generate_substitution_example(expr, var: Symbol):
             ],
         ),
         build_step(
-            '3) Integramos en términos de $u$',
-            'Reescribimos la integral con la nueva variable y resolvemos la primitiva elemental.',
-            [rf"\int {latex(outer(u_symbol))}\\,du = {latex(reduced_integral)}"],
+            '3) Integramos en la variable auxiliar',
+            'Al sustituir, obtenemos una integral elemental en $u$.',
+            [
+                rf"\int {latex(outer(u_symbol))}\\,du = {format_antiderivative(reduced_integral, u_symbol)}",
+            ],
         ),
         build_step(
-            '4) Volvemos a la variable original',
-            'Sustituimos $u$ por la expresión inicial y añadimos la constante de integración.',
+            '4) Regresamos a la variable original',
+            'Reemplazamos $u$ por la expresión inicial para concluir la antiderivada.',
             [format_antiderivative(antiderivative, var)],
         ),
     ]
@@ -357,31 +417,96 @@ def generate_trig_example(expr, var: Symbol):
 
 
 def generate_partial_fractions_example(expr, var: Symbol):
-    numerator, denominator = fraction(expr)
+    _, denominator = fraction(expr)
     denominator = simplify(denominator)
-    numerator = simplify(numerator + 1)
-    example_integrand = simplify(numerator / denominator)
-    decomposition = apart(example_integrand, var, full=True)
+
+    linear_factors: List[Symbol] = []
+    quadratic_factor = None
+    poly = denominator.as_poly(var)
+    if poly is not None:
+        for factor_expr, _ in poly.factor_list()[1]:
+            factor_poly = factor_expr.as_poly(var)
+            if factor_poly is None:
+                continue
+            degree = factor_poly.degree()
+            if degree == 1 and len(linear_factors) < 2:
+                linear_factors.append(factor_expr)
+            elif degree == 2 and quadratic_factor is None:
+                quadratic_factor = factor_expr
+
+    defaults = [var - 1, var + 2, var + 3, var - 2]
+    for candidate in defaults:
+        if len(linear_factors) >= 2:
+            break
+        if candidate not in linear_factors:
+            linear_factors.append(candidate)
+
+    if quadratic_factor is None:
+        quadratic_factor = var**2 + 1
+
+    linear1, linear2 = linear_factors[:2]
+    a, b, c, d = symbols('a b c d')
+    decomposition_general = a / linear1 + b / linear2 + (c * var + d) / quadratic_factor
+    chosen_values = {a: 2, b: -1, c: 1, d: 3}
+    example_integrand = simplify(decomposition_general.subs(chosen_values))
+    denominator_example = factor(linear1 * linear2 * quadratic_factor)
+    decomposition_specific = apart(example_integrand, var, full=True)
     antiderivative = integrate(example_integrand, var)
+
+    lhs = expand(decomposition_general * denominator_example)
+    rhs = expand(example_integrand * denominator_example)
+    lhs_poly = Poly(lhs, var)
+    rhs_poly = Poly(rhs, var)
+    lhs_coeffs = lhs_poly.all_coeffs()
+    rhs_coeffs = rhs_poly.all_coeffs()
+    pad_length = max(len(lhs_coeffs), len(rhs_coeffs))
+
+    def pad(coeffs, length):
+        return [0] * (length - len(coeffs)) + coeffs
+
+    lhs_coeffs = pad(lhs_coeffs, pad_length)
+    rhs_coeffs = pad(rhs_coeffs, pad_length)
+
+    equations = [latex(Eq(simplify(lhs_coeffs[i]), simplify(rhs_coeffs[i]))) for i in range(pad_length)]
+    system_latex = r'\begin{cases}' + r'\\'.join(equations) + r'\end{cases}'
+
+    solutions = solve(
+        [Eq(simplify(lhs_coeffs[i]), simplify(rhs_coeffs[i])) for i in range(pad_length)],
+        (a, b, c, d),
+        dict=True,
+    )
+    solution = solutions[0] if solutions else chosen_values
+    assignments = [latex(Eq(sym, simplify(solution.get(sym, chosen_values[sym])))) for sym in (a, b, c, d)]
+
+    coeff_summary = r',\; '.join(
+        f"{latex(sym)} = {latex(simplify(solution.get(sym, chosen_values[sym])))}" for sym in (a, b, c, d)
+    )
+
     setup = [
-        {'label': 'Denominador', 'value': latex(factor(denominator))},
-        {'label': 'Descomposición', 'value': latex(decomposition)},
+        {'label': 'Denominador', 'value': latex(denominator_example)},
+        {'label': 'Descomposición base', 'value': latex(decomposition_general)},
+        {'label': 'Coeficientes', 'value': coeff_summary},
     ]
     steps = [
         build_step(
             '1) Factorizamos el denominador',
-            'El objetivo es expresar el cociente como suma de términos simples.',
-            [latex(factor(denominator))],
+            'Expresamos el denominador como producto de factores lineales y cuadráticos irreductibles.',
+            [latex(denominator_example)],
         ),
         build_step(
-            '2) Planteamos las fracciones parciales',
-            'Escribimos la descomposición y hallamos los coeficientes que la satisfacen.',
-            [latex(decomposition)],
+            '2) Proponemos la descomposición',
+            'Asignamos constantes $a$, $b$, $c$ y $d$ a cada término elemental.',
+            [latex(decomposition_general)],
         ),
         build_step(
-            '3) Integramos término a término',
-            'Cada fracción elemental tiene una primitiva directa, que sumamos al final.',
-            [format_antiderivative(antiderivative, var)],
+            '3) Igualamos numeradores y resolvemos',
+            'Obtenemos un sistema lineal para hallar $a$, $b$, $c$ y $d$.',
+            [system_latex, *assignments],
+        ),
+        build_step(
+            '4) Integramos término a término',
+            'Sustituimos los coeficientes hallados y sumamos las primitivas de cada término.',
+            [latex(decomposition_specific), format_antiderivative(antiderivative, var)],
         ),
     ]
     return {
@@ -594,19 +719,19 @@ def indicates_substitution(expr, var: Symbol) -> bool:
             derivative = diff(base, var)
             if derivative != 0 and expr.has(derivative):
                 return True
+    if expr.is_rational_function(var) and not expr.is_polynomial(var):
+        numerator, denominator = fraction(expr)
+        denominator = simplify(denominator)
+        derivative = diff(denominator, var)
+        if derivative != 0:
+            ratio = simplify(numerator / derivative)
+            ratio_poly = ratio.as_poly(var)
+            if ratio_poly is not None and ratio_poly.degree() <= 0:
+                return True
     return False
 
 
 def detect_method(expr, var: Symbol) -> str:
-    if expr.is_rational_function(var) and not expr.is_polynomial(var):
-        _, denominator = fraction(expr)
-        poly = denominator.as_poly(var)
-        if poly is not None:
-            factors = poly.factor_list()[1]
-            if any(multiplicity > 1 for _, multiplicity in factors):
-                return 'repeated_factors'
-        return 'partial_fractions'
-
     if expr.has(sqrt):
         for radicand in expr.atoms(sqrt):
             inner = simplify(radicand.args[0])
@@ -619,6 +744,15 @@ def detect_method(expr, var: Symbol) -> str:
 
     if indicates_substitution(expr, var):
         return 'substitution'
+
+    if expr.is_rational_function(var) and not expr.is_polynomial(var):
+        _, denominator = fraction(expr)
+        poly = denominator.as_poly(var)
+        if poly is not None:
+            factors = poly.factor_list()[1]
+            if any(multiplicity > 1 for _, multiplicity in factors):
+                return 'repeated_factors'
+        return 'partial_fractions'
 
     return 'substitution' if expr.has(exp, log, sin, cos, tan, cot, sec, csc, sinh, cosh, tanh, sqrt) else 'default'
 
