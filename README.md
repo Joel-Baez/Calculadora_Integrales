@@ -9,6 +9,7 @@ Aplicación web con backend en Python que analiza integrales indefinidas, sugier
 - **Editor con vista previa en \(\LaTeX\)**: el área de captura personalizada acepta notación \(\LaTeX\) directamente, ofrece vista previa instantánea y se complementa con el teclado contextual de números, operadores, funciones, trigonometría y ayudas de método.
 - **Ejemplo guiado en LaTeX**: cada método trae un problema representativo, su solución final y un cuadro con los datos clave (como \(u\), \(du\) o el ángulo \(\theta\)) para seguir el razonamiento paso a paso.
 - **Pasos numerados con ecuaciones destacadas**: el ejemplo similar reproduce la secuencia didáctica con títulos, explicaciones y fórmulas renderizadas en \(\LaTeX\) para facilitar la comparación con la integral original.
+- **Descomposición detallada en fracciones parciales**: la guía muestra la propuesta general, el sistema de ecuaciones para hallar \(a, b, c, d\) (y demás coeficientes) y los valores finales en formato fraccionario antes de integrar.
 - **Interfaz responsiva y vistosa**: paneles translúcidos, tipografía moderna y estados informativos que acompañan el flujo de análisis.
 - **Teclado matemático segmentado**: botones agrupados por categorías (general, funciones, sustitución, fracciones parciales, etc.) que facilitan la captura del integrando desde la propia interfaz.
 
@@ -40,6 +41,7 @@ pip install -r requirements.txt
 
 - Usa el selector de variable para indicar la letra principal (por defecto `x`). La sanitización también acepta notación como `sen`, `tg`, `√`, `π`, `\sin`, `\frac{}`, etc., y la traduce a funciones de SymPy.
 - Aprovecha el editor con vista previa en \(\LaTeX\): escribe directamente en el campo interactivo, utiliza el teclado integrado para insertar fracciones, raíces, trigonometría y símbolos auxiliares y verifica el resultado en la vista previa de la integral completa.
+- Cuando insertes una plantilla desde el teclado, sustituye los cuadros \(\square\) por tus expresiones antes de enviar la integral para que el análisis se complete sin errores.
 - Recuerda que solo se analizan integrales indefinidas: la respuesta consiste en la técnica sugerida y un ejemplo análogo resuelto, no en la antiderivada de tu entrada.
 - El método sugerido puede diferir del que usarías manualmente, pero siempre viene acompañado de las sustituciones (\(u\), \(du\), \(dv\), \(v\), \(\theta\), etc.) y los pasos para replicarlo.
 

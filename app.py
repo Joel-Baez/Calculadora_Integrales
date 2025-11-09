@@ -1,4 +1,5 @@
 import re
+from string import ascii_lowercase
 from typing import Dict, List
 
 from flask import Flask, jsonify, request, send_from_directory
@@ -16,6 +17,7 @@ from sympy import (
     cosh,
     cot,
     Eq,
+    Rational,
     csc,
     diff,
     exp,
@@ -168,6 +170,12 @@ def describe_trig_substitution(inner_expr, var: Symbol):
 
 
 def generate_substitution_example(expr, var: Symbol):
+    def dx_relation(derived_expr):
+        simplified = simplify(derived_expr)
+        if simplify(simplified - 1) == 0:
+            return rf"d{latex(var)} = du"
+        return rf"d{latex(var)} = \\frac{{du}}{{{latex(simplified)}}}"
+
     if expr.is_rational_function(var) and not expr.is_polynomial(var):
         _, denominator = fraction(expr)
         inner = simplify(denominator)
@@ -179,10 +187,12 @@ def generate_substitution_example(expr, var: Symbol):
             u_symbol = Symbol('u')
             reduced_integrand = 1 / u_symbol
             reduced_antiderivative = integrate(reduced_integrand, u_symbol)
+            du_value = latex(derived) + rf"\\,d{latex(var)}"
             setup = [
-                {'label': 'u', 'value': latex(shifted_inner)},
-                {'label': 'du', 'value': latex(derived) + rf"\\,d{latex(var)}"},
-                {'label': 'Integral en u', 'value': rf"\int {latex(reduced_integrand)}\\,du"},
+                {'label': 'u(x)', 'value': latex(shifted_inner)},
+                {'label': 'du', 'value': du_value},
+                {'label': 'dx', 'value': dx_relation(derived)},
+                {'label': 'Integral en u', 'value': rf"\\int {latex(reduced_integrand)}\\,du"},
             ]
             steps = [
                 build_step(
@@ -195,18 +205,19 @@ def generate_substitution_example(expr, var: Symbol):
                     [make_integral_latex(example_integrand, var)],
                 ),
                 build_step(
-                    '2) Realizamos la sustitución',
-                    'Declaramos la variable auxiliar para simplificar el cociente.',
+                    '2) Declaramos $u(x)$ y el diferencial',
+                    'Expresamos el cambio de variable y cómo se transforma $dx$.',
                     [
-                        rf"u = {latex(shifted_inner)}",
-                        rf"du = {latex(derived)}\\,d{latex(var)}",
+                        rf"u(x) = {latex(shifted_inner)}",
+                        rf"du = {du_value}",
+                        dx_relation(derived),
                     ],
                 ),
                 build_step(
                     '3) Integramos en términos de $u$',
                     'La integral resultante es elemental y conduce a un logaritmo.',
                     [
-                        rf"\int {latex(reduced_integrand)}\\,du = {format_antiderivative(reduced_antiderivative, u_symbol)}",
+                        rf"\\int {latex(reduced_integrand)}\\,du = {format_antiderivative(reduced_antiderivative, u_symbol)}",
                     ],
                 ),
                 build_step(
@@ -237,11 +248,15 @@ def generate_substitution_example(expr, var: Symbol):
     example_integrand = simplify(derived * outer(shifted_inner))
     antiderivative = integrate(example_integrand, var)
     u_symbol = Symbol('u')
+    du_value = latex(derived) + rf"\\,d{latex(var)}"
+    reduced_integrand = outer(u_symbol)
+    reduced_integral = integrate(reduced_integrand, u_symbol)
     setup = [
-        {'label': 'u', 'value': latex(shifted_inner)},
-        {'label': 'du', 'value': latex(derived) + rf"\\,d{latex(var)}"},
+        {'label': 'u(x)', 'value': latex(shifted_inner)},
+        {'label': 'du', 'value': du_value},
+        {'label': 'dx', 'value': dx_relation(derived)},
+        {'label': 'Integral en u', 'value': rf"\\int {latex(reduced_integrand)}\\,du"},
     ]
-    reduced_integral = integrate(outer(u_symbol), u_symbol)
     steps = [
         build_step(
             '1) Identificamos la función compuesta',
@@ -253,18 +268,19 @@ def generate_substitution_example(expr, var: Symbol):
             [make_integral_latex(example_integrand, var)],
         ),
         build_step(
-            '2) Declaramos la sustitución',
+            '2) Declaramos $u(x)$ y el diferencial',
             'Elegimos una variable auxiliar que simplifique la composición.',
             [
-                rf"u = {latex(shifted_inner)}",
-                rf"du = {latex(derived)}\\,d{latex(var)}",
+                rf"u(x) = {latex(shifted_inner)}",
+                rf"du = {du_value}",
+                dx_relation(derived),
             ],
         ),
         build_step(
             '3) Integramos en la variable auxiliar',
             'Al sustituir, obtenemos una integral elemental en $u$.',
             [
-                rf"\int {latex(outer(u_symbol))}\\,du = {format_antiderivative(reduced_integral, u_symbol)}",
+                rf"\\int {latex(reduced_integrand)}\\,du = {format_antiderivative(reduced_integral, u_symbol)}",
             ],
         ),
         build_step(
@@ -310,10 +326,10 @@ def generate_parts_example(expr, var: Symbol):
         v = Integral(other, var)
     antiderivative = integrate(example_integrand, var)
     setup = [
-        {'label': 'u', 'value': latex(poly_example)},
+        {'label': 'u(x)', 'value': latex(poly_example)},
         {'label': 'du', 'value': latex(du) + rf"\\,d{latex(var)}"},
         {'label': 'dv', 'value': latex(other) + rf"\\,d{latex(var)}"},
-        {'label': 'v', 'value': latex(v)},
+        {'label': 'v(x)', 'value': latex(v)},
     ]
     steps = [
         build_step(
@@ -325,8 +341,8 @@ def generate_parts_example(expr, var: Symbol):
             '2) Fijamos las asignaciones',
             'Asignamos $u$ y $dv$ para que la derivada de $u$ reduzca el grado del polinomio.',
             [
-                rf"u = {latex(poly_example)} \Rightarrow du = {latex(du)}\\,d{latex(var)}",
-                rf"dv = {latex(other)}\\,d{latex(var)} \Rightarrow v = {latex(v)}",
+                rf"u(x) = {latex(poly_example)} \\Rightarrow du = {latex(du)}\\,d{latex(var)}",
+                rf"dv = {latex(other)}\\,d{latex(var)} \\Rightarrow v(x) = {latex(v)}",
             ],
         ),
         build_step(
@@ -418,38 +434,56 @@ def generate_trig_example(expr, var: Symbol):
 
 def generate_partial_fractions_example(expr, var: Symbol):
     _, denominator = fraction(expr)
-    denominator = simplify(denominator)
+    denominator = factor(simplify(denominator))
 
-    linear_factors: List[Symbol] = []
-    quadratic_factor = None
     poly = denominator.as_poly(var)
+    factors_data: List[tuple[Symbol, int]] = []
     if poly is not None:
-        for factor_expr, _ in poly.factor_list()[1]:
+        for factor_expr, multiplicity in poly.factor_list()[1]:
+            if multiplicity > 1:
+                continue
             factor_poly = factor_expr.as_poly(var)
             if factor_poly is None:
                 continue
-            degree = factor_poly.degree()
-            if degree == 1 and len(linear_factors) < 2:
-                linear_factors.append(factor_expr)
-            elif degree == 2 and quadratic_factor is None:
-                quadratic_factor = factor_expr
+            factors_data.append((factor_expr, factor_poly.degree()))
 
-    defaults = [var - 1, var + 2, var + 3, var - 2]
-    for candidate in defaults:
-        if len(linear_factors) >= 2:
-            break
-        if candidate not in linear_factors:
-            linear_factors.append(candidate)
+    if not factors_data:
+        factors_data = [(var - 2, 1), (var + 1, 1), (var**2 + 4, 2)]
+        denominator = factor((var - 2) * (var + 1) * (var**2 + 4))
 
-    if quadratic_factor is None:
-        quadratic_factor = var**2 + 1
+    coeff_iter = (Symbol(name) for name in ascii_lowercase if name != str(var))
 
-    linear1, linear2 = linear_factors[:2]
-    a, b, c, d = symbols('a b c d')
-    decomposition_general = a / linear1 + b / linear2 + (c * var + d) / quadratic_factor
-    chosen_values = {a: 2, b: -1, c: 1, d: 3}
+    def next_symbol(index: int) -> Symbol:
+        try:
+            return next(coeff_iter)
+        except StopIteration:  # pragma: no cover
+            return Symbol(f'c_{index}')
+
+    decomposition_terms = []
+    used_symbols: List[Symbol] = []
+    for factor_expr, degree in factors_data:
+        if degree == 1:
+            symbol = next_symbol(len(used_symbols))
+            decomposition_terms.append(symbol / factor_expr)
+            used_symbols.append(symbol)
+        else:
+            symbol_num = next_symbol(len(used_symbols))
+            symbol_const = next_symbol(len(used_symbols) + 1)
+            decomposition_terms.append((symbol_num * var + symbol_const) / factor_expr)
+            used_symbols.extend([symbol_num, symbol_const])
+
+    if not decomposition_terms:
+        symbol = Symbol('a')
+        decomposition_terms.append(symbol / (var - 1))
+        used_symbols.append(symbol)
+
+    decomposition_general = sum(decomposition_terms)
+    value_pool = [Rational(3, 2), -1, Rational(5, 3), 2, Rational(-4, 3), 1]
+    chosen_values = {
+        sym: value_pool[i % len(value_pool)] for i, sym in enumerate(used_symbols)
+    }
     example_integrand = simplify(decomposition_general.subs(chosen_values))
-    denominator_example = factor(linear1 * linear2 * quadratic_factor)
+    denominator_example = denominator
     decomposition_specific = apart(example_integrand, var, full=True)
     antiderivative = integrate(example_integrand, var)
 
@@ -472,20 +506,20 @@ def generate_partial_fractions_example(expr, var: Symbol):
 
     solutions = solve(
         [Eq(simplify(lhs_coeffs[i]), simplify(rhs_coeffs[i])) for i in range(pad_length)],
-        (a, b, c, d),
+        tuple(used_symbols),
         dict=True,
     )
     solution = solutions[0] if solutions else chosen_values
-    assignments = [latex(Eq(sym, simplify(solution.get(sym, chosen_values[sym])))) for sym in (a, b, c, d)]
+    assignments = [latex(Eq(sym, simplify(solution.get(sym, chosen_values[sym])))) for sym in used_symbols]
 
     coeff_summary = r',\; '.join(
-        f"{latex(sym)} = {latex(simplify(solution.get(sym, chosen_values[sym])))}" for sym in (a, b, c, d)
+        f"{latex(sym)} = {latex(simplify(solution.get(sym, chosen_values[sym])))}" for sym in used_symbols
     )
 
     setup = [
-        {'label': 'Denominador', 'value': latex(denominator_example)},
-        {'label': 'Descomposición base', 'value': latex(decomposition_general)},
-        {'label': 'Coeficientes', 'value': coeff_summary},
+        {'label': 'Denominador factorizado', 'value': latex(denominator_example)},
+        {'label': 'Forma general', 'value': latex(decomposition_general)},
+        {'label': 'Coeficientes hallados', 'value': coeff_summary},
     ]
     steps = [
         build_step(
@@ -495,12 +529,12 @@ def generate_partial_fractions_example(expr, var: Symbol):
         ),
         build_step(
             '2) Proponemos la descomposición',
-            'Asignamos constantes $a$, $b$, $c$ y $d$ a cada término elemental.',
+            'Asignamos constantes a cada fracción elemental según su tipo.',
             [latex(decomposition_general)],
         ),
         build_step(
             '3) Igualamos numeradores y resolvemos',
-            'Obtenemos un sistema lineal para hallar $a$, $b$, $c$ y $d$.',
+            'Obtenemos un sistema lineal para hallar los coeficientes desconocidos.',
             [system_latex, *assignments],
         ),
         build_step(
@@ -683,6 +717,11 @@ def is_transcendental_factor(expr, var: Symbol) -> bool:
 
 
 def indicates_parts(expr, var: Symbol) -> bool:
+    single_argument_funcs = (log, asin, acos, atan)
+    if expr.func in single_argument_funcs and len(expr.args) == 1 and expr.args[0] == var:
+        return True
+    if expr.has(log) and not expr.is_Mul and expr.as_poly(var) is None:
+        return True
     terms = expr.as_ordered_terms()
     for term in terms:
         factors = term.as_ordered_factors()
@@ -724,10 +763,25 @@ def indicates_substitution(expr, var: Symbol) -> bool:
         denominator = simplify(denominator)
         derivative = diff(denominator, var)
         if derivative != 0:
-            ratio = simplify(numerator / derivative)
-            ratio_poly = ratio.as_poly(var)
-            if ratio_poly is not None and ratio_poly.degree() <= 0:
+            if simplify(expr - derivative / denominator) == 0:
                 return True
+            if simplify(numerator - derivative) == 0:
+                return True
+            try:
+                ratio = simplify(numerator / derivative)
+            except Exception:  # pragma: no cover
+                ratio = None
+            if ratio is not None:
+                if not ratio.free_symbols:
+                    return True
+                try:  # pragma: no cover - symbolic constant detection may fail
+                    if ratio.is_constant(var):
+                        return True
+                except Exception:
+                    if not ratio.free_symbols:
+                        return True
+                if simplify(ratio - 1 / denominator) == 0:
+                    return True
     return False
 
 

@@ -13,11 +13,13 @@ const keyboardGrid = document.getElementById('keyboardGrid');
 const examplePills = document.querySelectorAll('.pill');
 
 const PLACEHOLDER_TOKEN = '\\placeholder{}';
+const PLACEHOLDER_RENDER = '\\square';
+const P = PLACEHOLDER_TOKEN;
 
 const KEYBOARD_GROUPS = [
   {
-    id: 'general',
-    label: 'General',
+    id: 'basico',
+    label: 'Básico',
     keys: [
       { label: '7', latex: '7' },
       { label: '8', latex: '8' },
@@ -29,89 +31,89 @@ const KEYBOARD_GROUPS = [
       { label: '2', latex: '2' },
       { label: '3', latex: '3' },
       { label: '0', latex: '0' },
+      { label: '.', latex: '.' },
       { label: 'x', latex: 'x' },
       { label: 'y', latex: 'y' },
-      { label: '(', latex: '(' },
-      { label: ')', latex: ')' },
-      { label: '| |', latex: '\\left|\\placeholder{}\\right|' },
-      { label: '√', latex: '\\sqrt{\\placeholder{}}' },
-      { label: 'xⁿ', latex: 'x^{\\placeholder{}}' },
-      { label: 'eˣ', latex: 'e^{\\placeholder{}}' },
-      { label: 'π', latex: '\\pi' },
-      { label: 'e', latex: 'e' }
-    ]
-  },
-  {
-    id: 'operadores',
-    label: 'Operadores',
-    keys: [
+      { label: 't', latex: 't' },
       { label: '+', latex: '+' },
       { label: '−', latex: '-' },
       { label: '·', latex: '\\cdot' },
       { label: '÷', latex: '\\div' },
       { label: '=', latex: '=' },
-      { label: '^', latex: '^{\\placeholder{}}' },
-      { label: '()', latex: '\\left(\\placeholder{}\\right)' },
-      { label: '[ ]', latex: '\\left[\\placeholder{}\\right]' }
+      { label: '(', latex: '(' },
+      { label: ')', latex: ')' },
+      { label: '√', latex: `\\sqrt{${P}}` },
+      { label: 'π', latex: '\\pi' },
+      { label: 'e', latex: 'e' }
     ]
   },
   {
     id: 'funciones',
     label: 'Funciones',
     keys: [
-      { label: 'exp', latex: '\\exp\\left(\\placeholder{}\\right)' },
-      { label: 'ln', latex: '\\ln\\left(\\placeholder{}\\right)' },
-      { label: 'log', latex: '\\log\\left(\\placeholder{}\\right)' },
-      { label: 'abs', latex: '\\left|\\placeholder{}\\right|' },
-      { label: '√()', latex: '\\sqrt{\\placeholder{}}' }
+      { label: 'sin', latex: `\\sin\\left(${P}\\right)` },
+      { label: 'cos', latex: `\\cos\\left(${P}\\right)` },
+      { label: 'tan', latex: `\\tan\\left(${P}\\right)` },
+      { label: 'sec', latex: `\\sec\\left(${P}\\right)` },
+      { label: 'csc', latex: `\\csc\\left(${P}\\right)` },
+      { label: 'cot', latex: `\\cot\\left(${P}\\right)` },
+      { label: 'sinh', latex: `\\sinh\\left(${P}\\right)` },
+      { label: 'cosh', latex: `\\cosh\\left(${P}\\right)` },
+      { label: 'tanh', latex: `\\tanh\\left(${P}\\right)` },
+      { label: 'exp', latex: `\\exp\\left(${P}\\right)` },
+      { label: 'ln', latex: `\\ln\\left(${P}\\right)` },
+      { label: 'log', latex: `\\log\\left(${P}\\right)` },
+      { label: 'abs', latex: `\\left|${P}\\right|` }
     ]
   },
   {
-    id: 'trigonometria',
-    label: 'Trigonometría',
+    id: 'estructuras',
+    label: 'Estructuras',
     keys: [
-      { label: 'sin', latex: '\\sin\\left(\\placeholder{}\\right)' },
-      { label: 'cos', latex: '\\cos\\left(\\placeholder{}\\right)' },
-      { label: 'tan', latex: '\\tan\\left(\\placeholder{}\\right)' },
-      { label: 'sec', latex: '\\sec\\left(\\placeholder{}\\right)' },
-      { label: 'csc', latex: '\\csc\\left(\\placeholder{}\\right)' },
-      { label: 'cot', latex: '\\cot\\left(\\placeholder{}\\right)' },
-      { label: 'asin', latex: '\\arcsin\\left(\\placeholder{}\\right)' },
-      { label: 'acos', latex: '\\arccos\\left(\\placeholder{}\\right)' },
-      { label: 'atan', latex: '\\arctan\\left(\\placeholder{}\\right)' },
-      { label: 'θ', latex: '\\theta' }
+      { label: 'xⁿ', latex: `x^{${P}}` },
+      { label: '( )ⁿ', latex: `\\left(${P}\\right)^{${P}}` },
+      { label: 'e^{ax}', latex: `e^{${P} x}` },
+      { label: '1/(ax+b)', latex: `\\frac{1}{\\left(${P} x+${P}\\right)}` },
+      { label: '√(a²−x²)', latex: `\\sqrt{${P}^{2}-x^{2}}` },
+      { label: '√(a²+x²)', latex: `\\sqrt{${P}^{2}+x^{2}}` },
+      { label: '√(x²−a²)', latex: `\\sqrt{x^{2}-${P}^{2}}` },
+      { label: '1/√()', latex: `\\frac{1}{\\sqrt{${P}}}` },
+      { label: '\\ln| |', latex: `\\ln\\left|${P}\\right|` },
+      { label: '∫ f', latex: `\\int ${P} \\,dx` }
     ]
   },
   {
     id: 'fracciones',
-    label: 'Fracciones',
+    label: 'Fracciones parciales',
     keys: [
-      { label: 'a/b', latex: '\\frac{\\placeholder{}}{\\placeholder{}}' },
-      { label: '1/x', latex: '\\frac{1}{\\placeholder{}}' },
-      { label: '1/(x+a)', latex: '\\frac{1}{\\left(\\placeholder{}\\right)}' },
-      { label: '(ax+b)/(cx+d)', latex: '\\frac{\\placeholder{}}{\\placeholder{}}' }
+      { label: 'A/(x-a)', latex: `\\frac{A}{x-${P}}` },
+      { label: 'B/(x+a)', latex: `\\frac{B}{x+${P}}` },
+      { label: '(Cx+D)/(x²+a²)', latex: `\\frac{Cx+D}{x^{2}+${P}^{2}}` },
+      { label: '1/(x(x+a))', latex: `\\frac{1}{x\\left(x+${P}\\right)}` },
+      { label: 'P(x)/Q(x)', latex: `\\frac{${P}}{${P}}` }
     ]
   },
   {
-    id: 'estrategias',
-    label: 'Estrategias',
+    id: 'metodos',
+    label: 'Métodos',
     keys: [
-      { label: 'u', latex: 'u' },
-      { label: 'du', latex: '\\,du' },
-      { label: 'v', latex: 'v' },
-      { label: 'dv', latex: '\\,dv' },
-      { label: 'dx', latex: '\\,dx' },
-      { label: 'dθ', latex: '\\,d\\theta' },
-      { label: 'u = g(x)', latex: 'u=\\placeholder{}' },
-      { label: "g'(x)", latex: "g'(\\placeholder{})" }
+      { label: 'u(x)=', latex: `u(x)=${P}` },
+      { label: 'du=', latex: `du=${P}\\,dx` },
+      { label: 'v(x)=', latex: `v(x)=${P}` },
+      { label: 'dv=', latex: `dv=${P}\\,dx` },
+      { label: '∫u dv', latex: '\\int u\\,dv' },
+      { label: '∫f(u)du', latex: '\\int f(u)\\,du' },
+      { label: 'θ', latex: '\\theta' },
+      { label: 'dθ', latex: 'd\\theta' },
+      { label: 'u→x', latex: `x=${P}(u)` }
     ]
   }
 ];
 
 const METHOD_TO_GROUP = {
-  substitution: 'estrategias',
-  parts: 'estrategias',
-  trig: 'trigonometria',
+  substitution: 'metodos',
+  parts: 'metodos',
+  trig: 'estructuras',
   partial_fractions: 'fracciones',
   repeated_factors: 'fracciones'
 };
@@ -180,10 +182,12 @@ const handleLatexInput = () => {
 
 const transformSnippet = (snippet) => {
   if (!snippet) {
-    return { text: '', caretOffset: null };
+    return { text: '', caretOffset: null, caretLength: 0 };
   }
 
   let caretOffset = null;
+  let caretLength = 0;
+  let placedPlaceholder = false;
   let result = '';
   let remaining = snippet;
 
@@ -201,10 +205,19 @@ const transformSnippet = (snippet) => {
       caretOffset = result.length;
     }
 
+    result += PLACEHOLDER_RENDER;
+    caretLength = PLACEHOLDER_RENDER.length;
+    placedPlaceholder = true;
+
     remaining = remaining.slice(index + PLACEHOLDER_TOKEN.length);
   }
 
-  return { text: result, caretOffset };
+  if (!placedPlaceholder) {
+    caretOffset = null;
+    caretLength = 0;
+  }
+
+  return { text: result, caretOffset, caretLength };
 };
 
 const insertLatex = (rawSnippet) => {
@@ -213,7 +226,7 @@ const insertLatex = (rawSnippet) => {
     return;
   }
 
-  const { text: snippet, caretOffset } = transformSnippet(rawSnippet);
+  const { text: snippet, caretOffset, caretLength } = transformSnippet(rawSnippet);
   const { selectionStart = mathInput.value.length, selectionEnd = mathInput.value.length } = mathInput;
   const baseValue = mathInput.value;
   const prefix = baseValue.slice(0, selectionStart);
@@ -223,7 +236,8 @@ const insertLatex = (rawSnippet) => {
   const insertionPoint = selectionStart + (caretOffset ?? snippet.length);
   requestAnimationFrame(() => {
     mathInput.focus();
-    mathInput.setSelectionRange(insertionPoint, insertionPoint);
+    const selectionEndPoint = caretOffset === null ? insertionPoint : insertionPoint + caretLength;
+    mathInput.setSelectionRange(insertionPoint, selectionEndPoint);
   });
 
   handleLatexInput();
@@ -450,7 +464,7 @@ form.addEventListener('submit', async (event) => {
     return;
   }
 
-  if (latexExpression.includes('\\placeholder')) {
+  if (latexExpression.includes('\\placeholder') || latexExpression.includes('\\square')) {
     setStatus('Completa los espacios vacíos del teclado antes de enviar la integral.', 'error');
     mathfieldHost?.classList.add('invalid');
     return;

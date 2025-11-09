@@ -392,6 +392,7 @@ fieldset.field .option {
   gap: 1rem;
   min-height: 260px;
   justify-content: flex-start;
+  overflow-wrap: anywhere;
 }
 
 .method-card h3 {
@@ -409,6 +410,7 @@ fieldset.field .option {
   border: 1px solid rgba(148, 163, 184, 0.25);
   color: var(--text-secondary);
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .status.loading {
@@ -545,6 +547,7 @@ fieldset.field .option {
   background: rgba(255, 255, 255, 0.07);
   padding: 0.6rem 0.85rem;
   border-radius: 12px;
+  overflow-wrap: anywhere;
 }
 
 .example-card {
@@ -584,6 +587,7 @@ fieldset.field .option {
 .setup-value {
   font-family: 'STIX Two Math', 'Fira Code', monospace;
   font-size: 1rem;
+  overflow-wrap: anywhere;
 }
 
 .equation-group {
@@ -598,6 +602,8 @@ fieldset.field .option {
   border-radius: 0.75rem;
   background: rgba(19, 23, 34, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow-x: auto;
+  overflow-wrap: anywhere;
 }
 
 .step-list li::before {
