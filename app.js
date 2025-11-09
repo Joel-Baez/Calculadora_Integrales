@@ -61,8 +61,7 @@ const KEYBOARD_GROUPS = [
       { label: 'e^{□}', latex: `e^{${P}}` },
       { label: 'e^{ax}', latex: `e^{${P} x}` },
       { label: '\\ln| |', latex: `\\ln\\left|${P}\\right|` },
-      { label: '\\int f', latex: `\\int ${P} \\,d${P}` },
-      { label: '\\sum', latex: `\\sum_{${P}}^{${P}} ${P}` }
+      { label: '\\int f', latex: `\\int ${P} \\,d${P}` }
     ]
   },
   {

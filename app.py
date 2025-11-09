@@ -1,5 +1,5 @@
 import re
-from string import ascii_lowercase
+from string import ascii_uppercase
 from typing import Dict, List
 
 from flask import Flask, jsonify, request, send_from_directory
@@ -129,15 +129,41 @@ METHOD_DETAILS: Dict[str, Dict[str, object]] = {
 }
 
 
+def clean_latex(text: str) -> str:
+    if not isinstance(text, str):
+        text = str(text)
+    cleaned = text
+    replacements = [
+        (r'\\left', ''),
+        (r'\\right', ''),
+    ]
+    for old, new in replacements:
+        cleaned = cleaned.replace(old, new)
+    cleaned = re.sub(r'\\operatorname\{([A-Za-z]+)\}', lambda match: f"\\{match.group(1)}", cleaned)
+    cleaned = re.sub(r'\\log(?!_)', r'\\ln', cleaned)
+    cleaned = cleaned.replace(r'\mathrm{d}', 'd')
+    return cleaned
+
+
+def latexize(obj) -> str:
+    if isinstance(obj, str):
+        return clean_latex(obj)
+    try:
+        rendered = latex(obj)
+    except Exception:  # pragma: no cover - fallback for non-SymPy inputs
+        rendered = str(obj)
+    return clean_latex(rendered)
+
+
 def make_integral_latex(expr, variable: Symbol) -> str:
-    return rf"\int {latex(expr)}\\,d{latex(variable)}"
+    return rf"\int {latexize(expr)}\\,d{latexize(variable)}"
 
 
 def format_antiderivative(expr, variable: Symbol) -> str:
     constant_suffix = ' + c'
     if isinstance(expr, Integral):
-        return latex(expr) + constant_suffix
-    return f"{latex(expr)}{constant_suffix}"
+        return latexize(expr) + constant_suffix
+    return f"{latexize(expr)}{constant_suffix}"
 
 
 def linearize_argument(arg, var: Symbol):
@@ -189,14 +215,14 @@ def simplify_parts_component(expr, var: Symbol):
 
 def format_differential(name: str, expr, variable: Symbol) -> str:
     simplified = simplify(expr)
-    return rf"{name} = {latex(simplified)}\\,d{latex(variable)}"
+    return rf"{name} = {latexize(simplified)}\\,d{latexize(variable)}"
 
 
 def format_dx_from_du(variable: Symbol, derivative) -> str:
     simplified = simplify(derivative)
     if simplify(simplified - 1) == 0:
-        return rf"d{latex(variable)} = du"
-    return rf"d{latex(variable)} = \\frac{{du}}{{{latex(simplified)}}}"
+        return rf"d{latexize(variable)} = du"
+    return rf"d{latexize(variable)} = \\frac{{du}}{{{latexize(simplified)}}}"
 
 
 def build_step(title: str, description: str, equations: List[str] | None = None) -> Dict[str, object]:
@@ -242,18 +268,21 @@ def generate_substitution_example(expr, var: Symbol):
             reduced_antiderivative = integrate(reduced_integrand, u_symbol)
             du_value = format_differential('du', derived, var)
             dx_value = format_dx_from_du(var, derived)
+            inner_tex = latexize(shifted_inner)
+            derived_tex = latexize(derived)
+            reduced_integrand_tex = latexize(reduced_integrand)
             setup = [
-                {'label': 'u(x)', 'value': rf"u(x) = {latex(shifted_inner)}"},
+                {'label': 'u(x)', 'value': rf"u(x) = {inner_tex}"},
                 {'label': 'du', 'value': du_value},
                 {'label': 'dx', 'value': dx_value},
-                {'label': 'Integral en u', 'value': rf"\\int {latex(reduced_integrand)}\\,du"},
+                {'label': 'Integral en u', 'value': rf"\\int {reduced_integrand_tex}\\,du"},
             ]
             steps = [
                 build_step(
                     '1) Observamos el denominador',
                     (
                         'El denominador compuesto '
-                        f"${latex(shifted_inner)}$ aparece junto con su derivada ${latex(derived)}$, "
+                        f"${inner_tex}$ aparece junto con su derivada ${derived_tex}$, "
                         'lo que sugiere una sustitución directa.'
                     ),
                     [make_integral_latex(example_integrand, var)],
@@ -262,7 +291,7 @@ def generate_substitution_example(expr, var: Symbol):
                     '2) Declaramos $u(x)$ y el diferencial',
                     'Expresamos el cambio de variable y cómo se transforma $dx$.',
                     [
-                        rf"u(x) = {latex(shifted_inner)}",
+                        rf"u(x) = {inner_tex}",
                         du_value,
                         dx_value,
                     ],
@@ -271,7 +300,7 @@ def generate_substitution_example(expr, var: Symbol):
                     '3) Integramos en términos de $u$',
                     'La integral resultante es elemental y conduce a un logaritmo.',
                     [
-                        rf"\\int {latex(reduced_integrand)}\\,du = {format_antiderivative(reduced_antiderivative, u_symbol)}",
+                        rf"\\int {reduced_integrand_tex}\\,du = {format_antiderivative(reduced_antiderivative, u_symbol)}",
                     ],
                 ),
                 build_step(
@@ -306,18 +335,22 @@ def generate_substitution_example(expr, var: Symbol):
     dx_value = format_dx_from_du(var, derived)
     reduced_integrand = outer(u_symbol)
     reduced_integral = integrate(reduced_integrand, u_symbol)
+    inner_tex = latexize(shifted_inner)
+    derived_tex = latexize(derived)
+    reduced_integrand_tex = latexize(reduced_integrand)
+    reduced_integral_tex = format_antiderivative(reduced_integral, u_symbol)
     setup = [
-        {'label': 'u(x)', 'value': rf"u(x) = {latex(shifted_inner)}"},
+        {'label': 'u(x)', 'value': rf"u(x) = {inner_tex}"},
         {'label': 'du', 'value': du_value},
         {'label': 'dx', 'value': dx_value},
-        {'label': 'Integral en u', 'value': rf"\\int {latex(reduced_integrand)}\\,du"},
+        {'label': 'Integral en u', 'value': rf"\\int {reduced_integrand_tex}\\,du"},
     ]
     steps = [
         build_step(
             '1) Identificamos la función compuesta',
             (
                 'Notamos que la parte interior '
-                f"${latex(shifted_inner)}$ aparece junto con su derivada ${latex(derived)}$ "
+                f"${inner_tex}$ aparece junto con su derivada ${derived_tex}$ "
                 'multiplicando a la función exterior.'
             ),
             [make_integral_latex(example_integrand, var)],
@@ -326,7 +359,7 @@ def generate_substitution_example(expr, var: Symbol):
             '2) Declaramos $u(x)$ y el diferencial',
             'Elegimos una variable auxiliar que simplifique la composición.',
             [
-                rf"u(x) = {latex(shifted_inner)}",
+                rf"u(x) = {inner_tex}",
                 du_value,
                 dx_value,
             ],
@@ -335,7 +368,7 @@ def generate_substitution_example(expr, var: Symbol):
             '3) Integramos en la variable auxiliar',
             'Al sustituir, obtenemos una integral elemental en $u$.',
             [
-                rf"\\int {latex(reduced_integrand)}\\,du = {format_antiderivative(reduced_integral, u_symbol)}",
+                rf"\\int {reduced_integrand_tex}\\,du = {reduced_integral_tex}",
             ],
         ),
         build_step(
@@ -386,11 +419,16 @@ def generate_parts_example(expr, var: Symbol):
     except Exception:  # pragma: no cover
         reduction = Integral(simplify(v_expr * du_expr), var)
     antiderivative = simplify(u_expr * v_expr - reduction)
+    u_tex = latexize(u_expr)
+    du_tex = latexize(du_expr)
+    v_tex = latexize(v_expr)
+    var_tex = latexize(var)
+    product_integral_tex = latexize(example_integrand)
     setup = [
-        {'label': 'u(x)', 'value': rf"u(x) = {latex(u_expr)}"},
+        {'label': 'u(x)', 'value': rf"u(x) = {u_tex}"},
         {'label': 'du', 'value': format_differential('du', du_expr, var)},
         {'label': 'dv', 'value': format_differential('dv', dv_simple, var)},
-        {'label': 'v(x)', 'value': rf"v(x) = {latex(v_expr)}"},
+        {'label': 'v(x)', 'value': rf"v(x) = {v_tex}"},
     ]
     steps = [
         build_step(
@@ -402,10 +440,10 @@ def generate_parts_example(expr, var: Symbol):
             '2) Fijamos las asignaciones',
             'Asignamos $u$ y $dv$ para que la derivada de $u$ reduzca el grado del polinomio.',
             [
-                rf"u(x) = {latex(u_expr)}",
+                rf"u(x) = {u_tex}",
                 format_differential('du', du_expr, var),
                 format_differential('dv', dv_simple, var),
-                rf"v(x) = {latex(v_expr)}",
+                rf"v(x) = {v_tex}",
             ],
         ),
         build_step(
@@ -413,7 +451,7 @@ def generate_parts_example(expr, var: Symbol):
             r'Utilizamos $\int u\,dv = uv - \int v\,du$ y simplificamos la integral restante.',
             [
                 r"\int u\,dv = uv - \int v\,du",
-                rf"\int {latex(example_integrand)}\\,d{latex(var)} = {latex(u_expr)}{latex(v_expr)} - \int {latex(v_expr)}\\,{latex(du_expr)}\\,d{latex(var)}",
+                rf"\int {product_integral_tex}\\,d{var_tex} = {u_tex}{v_tex} - \int {v_tex}\\,{du_tex}\\,d{var_tex}",
             ],
         ),
         build_step(
@@ -442,22 +480,24 @@ def generate_trig_example(expr, var: Symbol):
     if pattern == 'sqrt(a^2 - (bx)^2)':
         example_integrand = 1 / sqrt(a**2 - (b * var) ** 2)
         substitution_expr = (a / b) * sin(theta)
-        inverse = latex(asin(var * b / a))
+        inverse = latexize(asin(var * b / a))
     elif pattern == 'sqrt((bx)^2 - a^2)':
         example_integrand = sqrt((b * var) ** 2 - a**2) / var
         substitution_expr = (a / b) * sec(theta)
-        inverse = latex(acos(a / (b * var)))
+        inverse = latexize(acos(a / (b * var)))
     else:
         example_integrand = 1 / sqrt(a**2 + (b * var) ** 2)
         substitution_expr = (a / b) * tan(theta)
-        inverse = latex(atan(var * b / a))
+        inverse = latexize(atan(var * b / a))
 
     dx_theta = diff(substitution_expr, theta)
-    substitution = rf"{latex(var)} = {latex(substitution_expr)}"
-    differential = rf"d{latex(var)} = {latex(dx_theta)}\\,d\\theta"
+    var_tex = latexize(var)
+    theta_tex = latexize(theta)
+    substitution = rf"{var_tex} = {latexize(substitution_expr)}"
+    differential = rf"d{var_tex} = {latexize(dx_theta)}\\,d{theta_tex}"
     integrand_theta = simplify(example_integrand.subs(var, substitution_expr) * dx_theta)
-    theta_integral = latex(integrand_theta)
-    theta_antiderivative = latex(integrate(integrand_theta, theta))
+    theta_integral = latexize(integrand_theta)
+    theta_antiderivative = latexize(integrate(integrand_theta, theta))
     antiderivative = integrate(example_integrand, var)
 
     setup = [
@@ -515,7 +555,11 @@ def generate_partial_fractions_example(expr, var: Symbol):
         factors_data = [(var - 2, 1), (var + 1, 1), (var**2 + 4, 2)]
         denominator = factor((var - 2) * (var + 1) * (var**2 + 4))
 
-    coeff_iter = (Symbol(name) for name in ascii_lowercase if name != str(var))
+    coeff_iter = (
+        Symbol(name)
+        for name in ascii_uppercase
+        if name.lower() != str(var).lower()
+    )
 
     def next_symbol(index: int) -> Symbol:
         try:
@@ -565,7 +609,9 @@ def generate_partial_fractions_example(expr, var: Symbol):
     lhs_coeffs = pad(lhs_coeffs, pad_length)
     rhs_coeffs = pad(rhs_coeffs, pad_length)
 
-    equations = [latex(Eq(simplify(lhs_coeffs[i]), simplify(rhs_coeffs[i]))) for i in range(pad_length)]
+    equations = [
+        latexize(Eq(simplify(lhs_coeffs[i]), simplify(rhs_coeffs[i]))) for i in range(pad_length)
+    ]
     system_latex = r'\begin{cases}' + r'\\'.join(equations) + r'\end{cases}'
 
     solutions = solve(
@@ -574,27 +620,30 @@ def generate_partial_fractions_example(expr, var: Symbol):
         dict=True,
     )
     solution = solutions[0] if solutions else chosen_values
-    assignments = [latex(Eq(sym, simplify(solution.get(sym, chosen_values[sym])))) for sym in used_symbols]
+    assignments = [
+        latexize(Eq(sym, simplify(solution.get(sym, chosen_values[sym])))) for sym in used_symbols
+    ]
 
     coeff_summary = r',\; '.join(
-        f"{latex(sym)} = {latex(simplify(solution.get(sym, chosen_values[sym])))}" for sym in used_symbols
+        f"{latexize(sym)} = {latexize(simplify(solution.get(sym, chosen_values[sym])))}"
+        for sym in used_symbols
     )
 
     setup = [
-        {'label': 'Denominador factorizado', 'value': latex(denominator_example)},
-        {'label': 'Forma general', 'value': latex(decomposition_general)},
+        {'label': 'Denominador factorizado', 'value': latexize(denominator_example)},
+        {'label': 'Forma general', 'value': latexize(decomposition_general)},
         {'label': 'Coeficientes hallados', 'value': coeff_summary},
     ]
     steps = [
         build_step(
             '1) Factorizamos el denominador',
             'Expresamos el denominador como producto de factores lineales y cuadráticos irreductibles.',
-            [latex(denominator_example)],
+            [latexize(denominator_example)],
         ),
         build_step(
             '2) Proponemos la descomposición',
             'Asignamos constantes a cada fracción elemental según su tipo.',
-            [latex(decomposition_general)],
+            [latexize(decomposition_general)],
         ),
         build_step(
             '3) Igualamos numeradores y resolvemos',
@@ -604,7 +653,7 @@ def generate_partial_fractions_example(expr, var: Symbol):
         build_step(
             '4) Integramos término a término',
             'Sustituimos los coeficientes hallados y sumamos las primitivas de cada término.',
-            [latex(decomposition_specific), format_antiderivative(antiderivative, var)],
+            [latexize(decomposition_specific), format_antiderivative(antiderivative, var)],
         ),
     ]
     return {
@@ -624,19 +673,19 @@ def generate_repeated_factors_example(expr, var: Symbol):
     antiderivative = integrate(example_integrand, var)
     decomposition = apart(example_integrand, var, full=True)
     setup = [
-        {'label': 'Factor repetido', 'value': latex(dominant)},
-        {'label': 'Descomposición', 'value': latex(decomposition)},
+        {'label': 'Factor repetido', 'value': latexize(dominant)},
+        {'label': 'Descomposición', 'value': latexize(decomposition)},
     ]
     steps = [
         build_step(
             '1) Aislamos el factor repetido',
             'Identificamos el factor dominante y preparamos términos para cada potencia.',
-            [latex(dominant)],
+            [latexize(dominant)],
         ),
         build_step(
             '2) Asignamos fracciones parciales escalonadas',
             'Cada potencia genera una fracción con numeradores constantes a determinar.',
-            [latex(decomposition)],
+            [latexize(decomposition)],
         ),
         build_step(
             '3) Integramos sumando cada contribución',
@@ -659,7 +708,7 @@ def generate_default_example(var: Symbol):
         build_step(
             '1) Separar en sumas manejables',
             'Dividimos la integral en términos independientes.',
-            [latex(example_integrand)],
+            [latexize(example_integrand)],
         ),
         build_step(
             '2) Aplicar reglas básicas',
@@ -939,7 +988,7 @@ def analyze():
     method = METHOD_DETAILS.get(method_key, METHOD_DETAILS['default'])
 
     warnings: List[str] = []
-    extra_symbols = [latex(sym) for sym in expr.free_symbols if sym != var_symbol]
+    extra_symbols = [latexize(sym) for sym in expr.free_symbols if sym != var_symbol]
     if extra_symbols:
         warnings.append(
             'Se detectaron otras variables en el integrando: '
